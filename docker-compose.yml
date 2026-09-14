@@ -1,0 +1,88 @@
+name: lakehouse-rag
+
+# Memory budget: Docker Desktop has ~3.9 GB. Core profile limits total ~1.8 GB (actual use is
+# lower) so the one-shot Spark ingest job (~1.5 GB) can run alongside it.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    profiles: ["core"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rag}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rag}
+      POSTGRES_DB: ${POSTGRES_DB:-rag}
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - maintenance_work_mem=128MB
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    # Extensions, schema, roles and RLS come from Alembic (`mise run migrate`), not init scripts,
+    # so the same path works on RDS.
+    volumes:
+      - pgdata:/var/lib/postgresql
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  floci:
+    image: floci/floci:2.0.1
+    profiles: ["core"]
+    restart: unless-stopped
+    # The image entrypoint starts as root, fixes docker.sock group and /app/data ownership,
+    # then drops to the unprivileged floci user. docker.sock enables Docker-backed Lambda (local only).
+    environment:
+      FLOCI_HOSTNAME: floci
+      FLOCI_STORAGE_MODE: hybrid
+    ports:
+      - "4566:4566"
+    volumes:
+      - flocidata:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    mem_limit: 768m
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.16.0
+    profiles: ["core"]
+    restart: unless-stopped
+    command:
+      - mlflow
+      - server
+      - --host
+      - 0.0.0.0
+      - --port
+      - "5000"
+      - --backend-store-uri
+      - sqlite:////mlflow/mlflow.db
+      - --artifacts-destination
+      - /mlflow/artifacts
+      - --workers
+      - "1"
+    environment:
+      # Server-side GenAI job execution (Huey consumers) spawns extra workers that got the
+      # container OOM-killed; evals run client-side via `mise run eval`, so it is not needed.
+      MLFLOW_SERVER_ENABLE_JOB_EXECUTION: "false"
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflowdata:/mlflow
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      start_period: 60s
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  pgdata:
+  flocidata:
+  mlflowdata:
