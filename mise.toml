@@ -22,6 +22,8 @@ AWS_SECRET_ACCESS_KEY = "test"
 AWS_DEFAULT_REGION = "us-east-1"
 RAG_ENV = "local"
 DATABASE_URL = "postgresql+psycopg://rag:rag@localhost:5432/rag"
+# Keep the embedding model out of %TEMP%, which Windows cleans up.
+FASTEMBED_CACHE_PATH = "{{config_root}}/.cache/fastembed"
 
 [tasks.sync]
 description = "Install all Python dependency groups"

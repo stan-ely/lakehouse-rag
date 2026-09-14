@@ -45,6 +45,8 @@ mise run tf-local   # buckets, queues, secrets and the register Lambda on Floci
 mise run migrate    # pgvector, ops/rag/analytics schemas, roles, row-level security
 mise run seed       # generate Larkspur data: ops tables into Postgres, 157 documents into S3
 mise run backfill   # register manifests for objects whose S3 events were missed (idempotent)
+mise run ingest     # Spark container: bronze objects -> silver documents -> gold chunks (Delta)
+mise run index      # embed changed gold chunks into pgvector (incremental via change feed)
 mise run test       # unit tests
 mise run test-integration
 ```

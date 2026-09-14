@@ -38,23 +38,27 @@ def _seed_chunks(conn: psycopg.Connection) -> None:
         conn.execute(
             """
             INSERT INTO rag.documents (doc_id, source_type, source_uri, title, allowed_groups,
-                                       content_hash)
-            VALUES (%s, 'pdf', %s, %s, %s, 'hash')
+                                       content_hash, doc_version)
+            VALUES (%s, 'pdf', %s, %s, %s, 'hash', 'v1')
             """,
             (doc_id, f"s3://raw/{doc_id}.pdf", doc_id, groups),
         )
         conn.execute(
             """
-            INSERT INTO rag.chunks (chunk_id, doc_id, ordinal, content, embedding, embed_model,
-                                    allowed_groups)
-            VALUES (%s, %s, 0, 'salary bands and travel policy', %s::vector, 'test', %s)
+            INSERT INTO rag.chunks (chunk_id, doc_id, ordinal, content, content_hash, embedding,
+                                    embed_model, allowed_groups)
+            VALUES (%s, %s, 0, 'salary bands and travel policy', 'hash', %s::vector, 'test', %s)
             """,
             (f"{doc_id}#0", doc_id, ZERO_VECTOR, groups),
         )
 
 
 def _visible_chunks(conn: psycopg.Connection) -> set[str]:
-    return {row[0] for row in conn.execute("SELECT chunk_id FROM rag.chunks").fetchall()}
+    # Scoped to the seeded documents: the table may also hold chunks from `mise run index`.
+    rows = conn.execute(
+        "SELECT chunk_id FROM rag.chunks WHERE doc_id IN ('doc-public', 'doc-hr')"
+    ).fetchall()
+    return {row[0] for row in rows}
 
 
 @pytest.mark.parametrize(
