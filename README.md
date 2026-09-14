@@ -42,8 +42,13 @@ mise install        # pinned toolchain: python, uv, terraform, tflint, databrick
 mise run sync       # Python dependencies
 mise run up         # Postgres+pgvector, Floci, MLflow
 mise run tf-local   # buckets, queues, secrets on Floci
+mise run migrate    # pgvector, ops/rag/analytics schemas, roles, row-level security
+mise run seed       # generate Larkspur data: ops tables into Postgres, 157 documents into S3
+mise run test       # unit tests
 mise run test-integration
 ```
+
+The generator is deterministic (`--seed`, default 7) and dated as of 2026-08-31. Re-running it uploads only objects whose content or ACL changed. Generated files and `manifest.json` land in `data/out/`.
 
 Local runs target Floci by default. To use real AWS, set `MISE_ENV=aws`; this loads `mise.aws.toml` and removes the Floci endpoint overrides.
 
