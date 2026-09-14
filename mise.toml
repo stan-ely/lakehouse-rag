@@ -50,6 +50,10 @@ run = [
 description = "Generate the synthetic Larkspur Logistics dataset and load sources"
 run = "uv run python -m data_gen.generate"
 
+[tasks.backfill]
+description = "Register manifests for raw objects whose S3 events were missed"
+run = "uv run python -m ingestion.lambda_register.backfill"
+
 [tasks.ingest]
 description = "Run the Spark bronze/silver/gold batch job (one-shot container)"
 run = "docker compose --profile ingest run --rm spark"

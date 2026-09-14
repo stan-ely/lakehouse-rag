@@ -27,3 +27,14 @@ resource "aws_s3_bucket_notification" "raw_to_ingest" {
 
   depends_on = [module.ingest_queue]
 }
+
+module "register_lambda" {
+  source           = "../../modules/register_lambda"
+  name             = "${var.name_prefix}-register"
+  source_file      = "${path.module}/../../../../ingestion/lambda_register/handler.py"
+  build_dir        = "${path.module}/.build"
+  raw_bucket_arn   = module.storage.raw_bucket_arn
+  lake_bucket_name = module.storage.lake_bucket_name
+  lake_bucket_arn  = module.storage.lake_bucket_arn
+  queue_arn        = module.ingest_queue.queue_arn
+}

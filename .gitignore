@@ -23,6 +23,7 @@ mise.local.toml
 *.tfstate.*
 *.tfplan
 crash.log
+.build/
 .terraform.lock.hcl.bak
 override.tf
 override.tf.json

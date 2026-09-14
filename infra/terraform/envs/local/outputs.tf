@@ -14,6 +14,10 @@ output "ingest_dlq_url" {
   value = module.ingest_queue.dlq_url
 }
 
+output "register_function_name" {
+  value = module.register_lambda.function_name
+}
+
 output "llm_secret_arn" {
   value = module.secrets.llm_secret_arn
 }

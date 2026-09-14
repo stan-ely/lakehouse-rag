@@ -41,9 +41,10 @@ Prerequisites: Docker Desktop and [mise](https://mise.jdx.dev).
 mise install        # pinned toolchain: python, uv, terraform, tflint, databricks cli, ...
 mise run sync       # Python dependencies
 mise run up         # Postgres+pgvector, Floci, MLflow
-mise run tf-local   # buckets, queues, secrets on Floci
+mise run tf-local   # buckets, queues, secrets and the register Lambda on Floci
 mise run migrate    # pgvector, ops/rag/analytics schemas, roles, row-level security
 mise run seed       # generate Larkspur data: ops tables into Postgres, 157 documents into S3
+mise run backfill   # register manifests for objects whose S3 events were missed (idempotent)
 mise run test       # unit tests
 mise run test-integration
 ```
