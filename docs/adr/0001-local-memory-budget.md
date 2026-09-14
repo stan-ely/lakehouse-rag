@@ -49,8 +49,27 @@ Earlier startup measurements:
 - **MLflow:** peaked at 445 MiB during its first 120 s, with 0 restarts and `oom_kill 0`.
 - **Postgres:** 52 MiB right after start.
 
+Ingest (week 2): peaks sampled every ~2 s with `docker stats` across a bronze run (twice) and a
+silver + gold run over the seeded corpus (163 object events, 330 chunks):
+
+| Container | Peak | Limit | % of limit |
+|---|---|---|---|
+| spark (one-shot) | 1,321 MiB | 1,536 MiB | 86% |
+| mlflow | 362 MiB | 512 MiB | 71% |
+| floci | 216 MiB | 768 MiB | 28% |
+| postgres | 67 MiB | 512 MiB | 13% |
+| **total** | **~1,970 MiB** | 3,328 MiB | |
+
+- **Spark:** the 1 GiB driver heap plus the Python workers running `mapInPandas` (parsing,
+  boto3 downloads) account for the peak. With 14% headroom, a much larger corpus should lower
+  `spark.sql.shuffle.partitions`/`maxFilesPerTrigger` before raising the limit.
+- **Indexer:** runs on the host, not in the VM (fastembed ONNX, bge-small), so it does not count
+  against this budget.
+- **Image size is disk, not memory:** the ingest image is 3.3 GB (PySpark jars, the 690 MB AWS
+  SDK bundle that S3A requires). Leaving uv's cache in the image doubled it to 7.4 GB.
+
 ## Consequences
-- **Headroom:** there is plenty for the API and Spark job planned in weeks 2 and 3. Re-measure once each exists and update this ADR.
+- **Headroom:** ingest fits with ~1.9 GiB of the VM unused. Re-measure when the API exists (week 3) and update this ADR.
 - **Risk:** MLflow sits closest to its limit and its memory has been reported to creep upward over time ([mlflow#22792](https://github.com/mlflow/mlflow/issues/22792)). If steady-state use stays above ~460 MiB, raise it to 640 MiB and lower Floci to 640 MiB. Floci uses a quarter of its limit, so the total stays the same.
 - **CI:** GitHub-hosted runners have 16 GB, so the limits never bind there. They exist for local development and document the expected footprint of each service.
 - **Postgres tuning:** these settings are for a laptop. The AWS smoke environment (RDS) uses the parameter group defaults for its instance class.

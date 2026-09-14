@@ -1,0 +1,5 @@
+9e594525d264c0db653c7f68da98b245f7d61ea5 org/apache/hadoop/hadoop-aws/3.5.0/hadoop-aws-3.5.0.jar
+7252265e3970b214708e68a8b74a8fa8c875af1e software/amazon/awssdk/bundle/2.35.4/bundle-2.35.4.jar
+6c9bd0f6c440c9a78e82d272f5f0252d942419f6 software/amazon/s3/analyticsaccelerator/analyticsaccelerator-s3/1.3.1/analyticsaccelerator-s3-1.3.1.jar
+c2ab26421b8de44a2161b5e0b7da7954049f1ca1 io/delta/delta-spark_4.2_2.13/4.4.0/delta-spark_4.2_2.13-4.4.0.jar
+a068e489ce20d7f79bc4ca2d3392f12adbb69ddd io/delta/delta-storage/4.4.0/delta-storage-4.4.0.jar

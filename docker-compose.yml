@@ -82,6 +82,24 @@ services:
       timeout: 5s
       retries: 12
 
+  # One-shot medallion job (`mise run ingest`). Needs the core profile up; no depends_on because
+  # services in an inactive profile cannot be dependencies.
+  spark:
+    build:
+      context: .
+      dockerfile: docker/spark/Dockerfile
+    image: lakehouse-rag-spark:local
+    profiles: ["ingest"]
+    environment:
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      # boto3 (object versions for bronze) and S3A (Delta tables) both talk to Floci.
+      AWS_ENDPOINT_URL: http://floci:4566
+      RAG_S3A_ENDPOINT: http://floci:4566
+      RAG_LAKE_ROOT: s3a://larkspur-local-lake
+    mem_limit: 1536m
+
 volumes:
   pgdata:
   flocidata:

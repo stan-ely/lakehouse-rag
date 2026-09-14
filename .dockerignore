@@ -1,0 +1,7 @@
+# Allowlist: images copy only what they need, and .venv/data/terraform state never enter a build.
+*
+!pyproject.toml
+!uv.lock
+!docker/
+!ingestion/
+**/__pycache__
