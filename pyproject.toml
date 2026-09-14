@@ -43,6 +43,20 @@ eval = [
     "mlflow>=3.16.0",
     "pandas>=3.0.5",
 ]
+indexer = [
+    "deltalake>=1.6.3",
+    "fastembed>=0.8.0",
+    "pgvector>=0.5.0",
+    "psycopg[binary]>=3.3.5",
+    "pyarrow>=25.0.1",
+]
+ingest = [
+    "beautifulsoup4>=4.15.0",
+    "delta-spark==4.4.0",
+    "pypdf>=6.18.1",
+    "pyspark==4.2.0",
+    "python-docx>=1.2.0",
+]
 ui = [
     "streamlit>=1.63.0",
 ]
@@ -68,8 +82,8 @@ ignore = ["S101"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
-# Extend as packages land (app, ingestion, eval).
-files = ["data_gen", "db", "tests"]
+# Extend as packages land (app, eval).
+files = ["data_gen", "db", "ingestion", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
