@@ -1,0 +1,20 @@
+# Hooks use the mise-pinned toolchain (language: system) so local, pre-commit and CI versions match.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --fix
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: terraform-fmt
+        name: terraform fmt
+        entry: terraform fmt -recursive infra/terraform
+        language: system
+        files: \.tf$
+        pass_filenames: false

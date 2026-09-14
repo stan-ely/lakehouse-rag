@@ -1,0 +1,69 @@
+[project]
+name = "lakehouse-rag"
+version = "0.1.0"
+description = "Production-grade mixed-source enterprise RAG on a lakehouse: Delta medallion ingestion, pgvector hybrid search, ACL-aware retrieval, text-to-SQL routing, MLflow evals"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+api = [
+    "alembic>=1.20.0",
+    "anthropic>=1.5.0",
+    "boto3>=1.43.93",
+    "fastapi>=0.141.1",
+    "fastembed>=0.8.0",
+    "httpx>=0.28.1",
+    "mlflow-skinny>=3.16.0",
+    "pgvector>=0.5.0",
+    "prometheus-client>=0.26.0",
+    "psycopg[binary,pool]>=3.3.5",
+    "pydantic-settings>=2.15.0",
+    "pyjwt>=2.14.0",
+    "sqlalchemy>=2.0.52",
+    "sqlglot>=30.18.0",
+    "structlog>=26.1.0",
+    "tenacity>=9.1.4",
+    "uvicorn[standard]>=0.53.0",
+]
+datagen = [
+    "faker>=40.38.0",
+    "python-docx>=1.2.0",
+    "pyyaml>=6.0.3",
+    "reportlab>=5.0.1",
+]
+dev = [
+    "boto3-stubs[s3,secretsmanager,sqs]>=1.43.93",
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "types-pyyaml>=6.0.12.20260906",
+]
+eval = [
+    "mlflow>=3.16.0",
+    "pandas>=3.0.5",
+]
+ui = [
+    "streamlit>=1.63.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "PT"]
+ignore = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["integration: requires the local docker/Floci stack"]

@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+mise.local.toml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+.terraform.lock.hcl.bak
+override.tf
+override.tf.json
+*_override.tf
+
+# Data & generated artifacts
+data/out/
+data/lake/
+mlruns/
+mlartifacts/
+spark-warehouse/
+metastore_db/
+derby.log
+*.onnx
+.cache/
+
+# Databricks
+.databricks/
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

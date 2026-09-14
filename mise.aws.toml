@@ -1,0 +1,6 @@
+# Activated with MISE_ENV=aws for the real-AWS smoke test. Removes the Floci overrides.
+[env]
+AWS_ENDPOINT_URL = false
+AWS_ACCESS_KEY_ID = false
+AWS_SECRET_ACCESS_KEY = false
+RAG_ENV = "aws"

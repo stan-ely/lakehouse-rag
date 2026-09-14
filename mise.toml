@@ -1,0 +1,77 @@
+[tools]
+# Python pinned to the Databricks serverless environment 6 minor version (3.12.3).
+python = "3.12"
+uv = "0.12.13"
+terraform = "1.16.2"
+tflint = "0.64.0"
+"aqua:databricks/cli" = "1.16.1"
+# mise's aws-cli backend has no Windows build; locally, scripts and tests use boto3 against Floci.
+aws-cli = { version = "2.36.44", os = ["linux", "macos"] }
+pre-commit = "4.6.2"
+ruff = "0.16.7"
+
+[env]
+_.python.venv = { path = ".venv", create = true }
+# Local-first: AWS SDKs/CLI/Terraform talk to Floci unless MISE_ENV=aws (see mise.aws.toml).
+AWS_ENDPOINT_URL = "http://localhost:4566"
+AWS_ACCESS_KEY_ID = "test"
+AWS_SECRET_ACCESS_KEY = "test"
+AWS_DEFAULT_REGION = "us-east-1"
+RAG_ENV = "local"
+DATABASE_URL = "postgresql+psycopg://rag:rag@localhost:5432/rag"
+
+[tasks.sync]
+description = "Install all Python dependency groups"
+run = "uv sync --all-groups"
+
+[tasks.up]
+description = "Start the core local stack (Postgres+pgvector, Floci, MLflow)"
+run = "docker compose --profile core up -d --wait"
+
+[tasks.down]
+description = "Stop all local containers"
+run = "docker compose --profile core --profile ingest down"
+
+[tasks.migrate]
+description = "Apply database migrations"
+run = "uv run alembic upgrade head"
+
+[tasks.tf-local]
+description = "Provision AWS resources on Floci"
+run = [
+  "terraform -chdir=infra/terraform/envs/local init -input=false",
+  "terraform -chdir=infra/terraform/envs/local apply -auto-approve -input=false",
+]
+
+[tasks.seed]
+description = "Generate the synthetic Larkspur Logistics dataset and load sources"
+run = "uv run python -m data_gen.generate"
+
+[tasks.ingest]
+description = "Run the Spark bronze/silver/gold batch job (one-shot container)"
+run = "docker compose --profile ingest run --rm spark"
+
+[tasks.index]
+description = "Embed changed gold chunks into pgvector"
+run = "uv run python -m ingestion.indexer.run"
+
+[tasks.test]
+description = "Run unit tests"
+run = "uv run pytest -m \"not integration\""
+
+[tasks.test-integration]
+description = "Run integration tests against the local stack"
+run = "uv run pytest -m integration"
+
+[tasks.lint]
+description = "Lint, format-check and type-check"
+run = [
+  "ruff check .",
+  "ruff format --check .",
+  "uv run mypy app ingestion data_gen eval",
+  "tflint --chdir=infra/terraform --recursive",
+]
+
+[tasks.eval]
+description = "Run the evaluation harness and log to MLflow"
+run = "uv run python -m eval.run_eval"
