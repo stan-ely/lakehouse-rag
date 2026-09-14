@@ -58,10 +58,18 @@ target-version = "py312"
 select = ["E", "F", "W", "I", "B", "UP", "S", "SIM", "RUF", "PT"]
 ignore = ["S101"]
 
+[tool.ruff.lint.per-file-ignores]
+# Synthetic data needs seeded, reproducible randomness, not a CSPRNG.
+"data_gen/**" = ["S311"]
+# Document prose reads better unwrapped; the formatter still governs code layout.
+"data_gen/{static_docs,conversations}.py" = ["E501"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+# Extend as packages land (app, ingestion, eval).
+files = ["data_gen", "db", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

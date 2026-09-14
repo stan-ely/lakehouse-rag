@@ -68,7 +68,7 @@ description = "Lint, format-check and type-check"
 run = [
   "ruff check .",
   "ruff format --check .",
-  "uv run mypy app ingestion data_gen eval",
+  "uv run mypy",
   "tflint --chdir=infra/terraform --recursive",
 ]
 
