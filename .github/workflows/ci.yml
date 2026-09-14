@@ -1,0 +1,51 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: lint, types, unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      # Installs the exact toolchain pinned in mise.toml, so CI matches local development.
+      - uses: jdx/mise-action@v4
+      - run: mise run sync
+      - name: terraform validate
+        run: |
+          terraform -chdir=infra/terraform/envs/local init -backend=false -input=false
+          terraform -chdir=infra/terraform/envs/local validate
+      - run: mise run lint
+      - run: mise run test
+
+  integration:
+    name: integration (Postgres + Floci)
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: jdx/mise-action@v4
+      - run: mise run sync
+      - run: mise run up
+      - run: mise run tf-local
+      - run: mise run migrate
+      - run: mise run seed
+      - run: mise run test-integration
+      - name: container logs
+        if: failure()
+        run: docker compose --profile core logs --no-color --tail 200
+      - name: stop stack
+        if: always()
+        run: mise run down

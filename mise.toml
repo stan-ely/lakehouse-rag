@@ -9,6 +9,9 @@ tflint = "0.64.0"
 aws-cli = { version = "2.36.44", os = ["linux", "macos"] }
 pre-commit = "4.6.2"
 ruff = "0.16.7"
+actionlint = "1.7.12"
+# actionlint shells out to shellcheck for `run:` steps; without a pin the mise shim errors.
+shellcheck = "0.11.0"
 
 [env]
 _.python.venv = { path = ".venv", create = true }
@@ -69,7 +72,9 @@ run = [
   "ruff check .",
   "ruff format --check .",
   "uv run mypy",
+  "terraform fmt -check -recursive infra/terraform",
   "tflint --chdir=infra/terraform --recursive",
+  "actionlint",
 ]
 
 [tasks.eval]
