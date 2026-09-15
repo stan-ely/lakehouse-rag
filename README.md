@@ -47,6 +47,8 @@ mise run seed       # generate Larkspur data: ops tables into Postgres, 157 docu
 mise run backfill   # register manifests for objects whose S3 events were missed (idempotent)
 mise run ingest     # Spark container: bronze objects -> silver documents -> gold chunks (Delta)
 mise run index      # embed changed gold chunks into pgvector (incremental via change feed)
+mise run api        # query API on :8000 (RAG_LLM_PROVIDER=fake|bedrock|anthropic)
+mise run token sales  # JWT for a demo persona; then POST /query with `Authorization: Bearer ...`
 mise run test       # unit tests
 mise run test-integration
 ```

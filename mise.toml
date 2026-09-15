@@ -64,6 +64,14 @@ run = "docker compose --profile ingest run --rm spark"
 description = "Embed changed gold chunks into pgvector"
 run = "uv run python -m ingestion.indexer.run"
 
+[tasks.api]
+description = "Run the query API locally with reload on :8000"
+run = "uv run uvicorn app.api.main:create_app --factory --reload --port 8000"
+
+[tasks.token]
+description = "Mint a local JWT for a persona, e.g. `mise run token sales`"
+run = "uv run python -m app.tokens"
+
 [tasks.test]
 description = "Run unit tests"
 run = "uv run pytest -m \"not integration\""
