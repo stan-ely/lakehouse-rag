@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # Below this cosine similarity, and with no full-text match, the service refuses to answer.
     min_similarity: float = Field(default=0.55, ge=0, le=1)
 
+    # Text-to-SQL runs as the least-privileged `rag_sql` login (migration 0006), never as `rag`.
+    sql_database_url: str = "postgresql://rag_sql:rag_sql@localhost:5432/rag"
+    sql_pool_max: int = 2
+    sql_max_rows: int = Field(default=200, ge=1, le=5000)
+    sql_statement_timeout_ms: int = Field(default=5000, ge=100)
+
     llm_provider: Literal["fake", "bedrock", "anthropic"] = "fake"
     # None picks the provider's default (see app.llm.DEFAULT_MODELS).
     llm_model: str | None = None
@@ -39,6 +45,10 @@ class Settings(BaseSettings):
     @property
     def dsn(self) -> str:
         return self.database_url.replace("+psycopg", "")
+
+    @property
+    def sql_dsn(self) -> str:
+        return self.sql_database_url.replace("+psycopg", "")
 
 
 @lru_cache
