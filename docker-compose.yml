@@ -93,6 +93,8 @@ services:
     environment:
       RAG_ENV: local
       RAG_DATABASE_URL: postgresql://rag:rag@postgres:5432/rag
+      RAG_SQL_DATABASE_URL: postgresql://rag_sql:rag_sql@postgres:5432/rag
+      RAG_AS_OF_DATE: "2026-08-31"
       RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-fake}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
       AWS_ACCESS_KEY_ID: test

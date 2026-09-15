@@ -37,6 +37,10 @@ class QueryResponse(BaseModel):
     usage: UsageOut
     cost_usd: float | None
     timings_ms: dict[str, float]
+    route: str | None = None
+    route_method: str | None = None
+    sql: str | None = None
+    sql_error: str | None = None
 
     @classmethod
     def from_answer(cls, request_id: str, answer: Answer) -> "QueryResponse":
@@ -67,6 +71,10 @@ class QueryResponse(BaseModel):
             ),
             cost_usd=None if answer.cost_usd is None else float(answer.cost_usd),
             timings_ms=answer.timings_ms,
+            route=answer.route,
+            route_method=answer.route_method,
+            sql=answer.sql,
+            sql_error=answer.sql_error,
         )
 
 

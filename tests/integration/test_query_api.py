@@ -102,7 +102,7 @@ def _auth(groups: list[str]) -> dict[str, str]:
 def test_ready_checks_database_and_model(client: TestClient) -> None:
     response = client.get("/ready")
     assert response.status_code == 200
-    assert response.json()["checks"] == {"database": True, "embedder": True}
+    assert response.json()["checks"] == {"database": True, "sql_database": True, "embedder": True}
 
 
 def test_query_returns_a_cited_answer(client: TestClient) -> None:

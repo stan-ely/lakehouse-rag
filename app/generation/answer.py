@@ -56,6 +56,10 @@ class Answer:
     usage: Usage = field(default_factory=Usage)
     cost_usd: Decimal | None = Decimal(0)
     timings_ms: dict[str, float] = field(default_factory=dict)
+    route: str | None = None
+    route_method: str | None = None
+    sql: str | None = None
+    sql_error: str | None = None
 
 
 class AnswerService:
@@ -87,11 +91,21 @@ class AnswerService:
             timings_ms=timings,
         )
 
-    def answer(self, question: str, principal: Principal) -> Answer:
+    def answer(
+        self,
+        question: str,
+        principal: Principal,
+        *,
+        extra_sources: Sequence[RetrievedChunk] = (),
+        retrieve: bool = True,
+    ) -> Answer:
+        """`extra_sources` (e.g. a SQL result) are numbered first, ahead of retrieved chunks."""
         timings: dict[str, float] = {}
-        start = time.perf_counter()
-        chunks = self.retriever.search(question, sorted(principal.groups), self.k)
-        timings["retrieval"] = (time.perf_counter() - start) * 1000
+        chunks = list(extra_sources)
+        if retrieve:
+            start = time.perf_counter()
+            chunks += self.retriever.search(question, sorted(principal.groups), self.k)
+            timings["retrieval"] = (time.perf_counter() - start) * 1000
 
         if not chunks:
             return self._refuse("no_accessible_sources", chunks, timings)

@@ -25,9 +25,13 @@ from app.auth import AuthError, Principal, decode_token
 from app.generation.answer import Answer, AnswerService
 from app.llm import build_provider
 from app.llm.base import LLMError, LLMTimeout
+from app.orchestrator import QueryService as Orchestrator
 from app.retrieval.embedder import FastQueryEmbedder
 from app.retrieval.hybrid import HybridRetriever
+from app.router.classifier import Router
 from app.settings import Settings, get_settings
+from app.sql_tool.executor import SqlExecutor
+from app.sql_tool.service import SqlTool
 
 Readiness = Callable[[], dict[str, bool]]
 
@@ -36,51 +40,75 @@ class QueryService(Protocol):
     def answer(self, question: str, principal: Principal) -> Answer: ...
 
 
-def _readiness(pool: ConnectionPool[Connection[Any]], embedder: FastQueryEmbedder) -> Readiness:
+def _ping(pool: ConnectionPool[Connection[Any]]) -> bool:
+    try:
+        with pool.connection(timeout=2) as conn:
+            conn.execute("SELECT 1")
+    except Exception:
+        return False
+    return True
+
+
+def _readiness(
+    pools: dict[str, ConnectionPool[Connection[Any]]], embedder: FastQueryEmbedder
+) -> Readiness:
     def check() -> dict[str, bool]:
-        try:
-            with pool.connection(timeout=2) as conn:
-                conn.execute("SELECT 1")
-            database = True
-        except Exception:
-            database = False
-        return {"database": database, "embedder": embedder.loaded}
+        return {**{name: _ping(pool) for name, pool in pools.items()}, "embedder": embedder.loaded}
 
     return check
 
 
+def _open_pool(dsn: str, min_size: int, max_size: int, **options: Any) -> ConnectionPool[Any]:
+    pool: ConnectionPool[Any] = ConnectionPool(
+        dsn,
+        min_size=min_size,
+        max_size=max_size,
+        kwargs={"autocommit": True},
+        open=False,
+        **options,
+    )
+    pool.open(wait=True, timeout=10)
+    return pool
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    pool: ConnectionPool[Connection[Any]] | None = None
-    if app.state.service is None:
-        settings: Settings = app.state.settings
-        pool = ConnectionPool(
-            settings.dsn,
-            min_size=settings.db_pool_min,
-            max_size=settings.db_pool_max,
-            kwargs={"autocommit": True},
-            configure=register_vector,
-            open=False,
-        )
-        pool.open(wait=True, timeout=10)
-        embedder = FastQueryEmbedder(settings.embed_model)
-        embedder.load()
-        retriever = HybridRetriever(
-            pool, embedder, candidates=settings.retrieval_candidates, rrf_k=settings.rrf_k
-        )
-        app.state.service = AnswerService(
-            retriever,
-            build_provider(settings),
-            k=settings.retrieval_k,
-            min_similarity=settings.min_similarity,
-            max_tokens=settings.llm_max_tokens,
-        )
-        app.state.readiness = _readiness(pool, embedder)
+    pools: list[ConnectionPool[Any]] = []
     try:
+        if app.state.service is None:
+            settings: Settings = app.state.settings
+            # Retrieval and SQL use different logins: the SQL tool never holds `rag` privileges.
+            pool = _open_pool(
+                settings.dsn, settings.db_pool_min, settings.db_pool_max, configure=register_vector
+            )
+            pools.append(pool)
+            sql_pool = _open_pool(settings.sql_dsn, 1, settings.sql_pool_max)
+            pools.append(sql_pool)
+            embedder = FastQueryEmbedder(settings.embed_model)
+            embedder.load()
+            llm = build_provider(settings)
+            retriever = HybridRetriever(
+                pool, embedder, candidates=settings.retrieval_candidates, rrf_k=settings.rrf_k
+            )
+            answers = AnswerService(
+                retriever,
+                llm,
+                k=settings.retrieval_k,
+                min_similarity=settings.min_similarity,
+                max_tokens=settings.llm_max_tokens,
+            )
+            sql_tool = SqlTool(
+                llm,
+                SqlExecutor(sql_pool, statement_timeout_ms=settings.sql_statement_timeout_ms),
+                max_rows=settings.sql_max_rows,
+                as_of=settings.as_of_date,
+            )
+            app.state.service = Orchestrator(Router(llm), answers, sql_tool)
+            app.state.readiness = _readiness({"database": pool, "sql_database": sql_pool}, embedder)
         yield
     finally:
-        if pool is not None:
-            pool.close()
+        for opened in pools:
+            opened.close()
 
 
 _bearer = HTTPBearer(auto_error=False)
