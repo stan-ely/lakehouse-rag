@@ -45,6 +45,13 @@ def canonical_model(model_id: str) -> str:
     return re.sub(r"-\d{8}$", "", name)
 
 
+def add_costs(*costs: Decimal | None) -> Decimal | None:
+    """Total of several calls; unknown if any part is unknown, never undercounted as $0."""
+    if any(cost is None for cost in costs):
+        return None
+    return sum((cost for cost in costs if cost is not None), Decimal(0))
+
+
 def cost_usd(model_id: str, usage: Usage) -> Decimal | None:
     price = PRICES.get(canonical_model(model_id))
     if price is None:

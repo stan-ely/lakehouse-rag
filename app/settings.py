@@ -1,5 +1,6 @@
 """Runtime configuration from `RAG_*` environment variables; in AWS, secrets are injected."""
 
+from datetime import date
 from functools import lru_cache
 from typing import Literal
 
@@ -33,6 +34,9 @@ class Settings(BaseSettings):
     sql_pool_max: int = 2
     sql_max_rows: int = Field(default=200, ge=1, le=5000)
     sql_statement_timeout_ms: int = Field(default=5000, ge=100)
+    # "Today" for relative dates in SQL ("last month"). The synthetic dataset is frozen at
+    # 2026-08-31, so local environments pin it; unset means the real current date.
+    as_of_date: date | None = None
 
     llm_provider: Literal["fake", "bedrock", "anthropic"] = "fake"
     # None picks the provider's default (see app.llm.DEFAULT_MODELS).
