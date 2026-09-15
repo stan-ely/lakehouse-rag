@@ -1,23 +1,52 @@
 """Runs silver and gold in the ingest container and checks the documents and chunks they hold.
 
-Runs after the bronze test (alphabetical order), which leaves bronze current.
+Runs after the bronze test (alphabetical order), which leaves bronze current. The fixture seeds
+its own unparseable object, so no test depends on data another test (or a manual run) left.
 """
 
 from collections import Counter
 from typing import Any
 
 import pytest
+from botocore.exceptions import ClientError
 
-from tests.integration.lake import delta_table, run_ingest, table_rows
+from ingestion.lambda_register.backfill import backfill
+from tests.integration.lake import (
+    LAKE_BUCKET,
+    RAW_BUCKET,
+    delta_table,
+    run_ingest,
+    s3_client,
+    table_rows,
+)
 
 pytestmark = pytest.mark.integration
 
 ORIGINAL = "wiki-support-escalation-matrix"
 COPY = "wiki-support-escalation-matrix-copy"
+# No parser handles .txt, so this object must become a silver row with parse_error.
+UNPARSEABLE_KEY = "smoke/unsupported-format.txt"
+
+
+def _ensure_unparseable_object() -> None:
+    s3 = s3_client()
+    try:
+        s3.head_object(Bucket=RAW_BUCKET, Key=UNPARSEABLE_KEY)
+    except ClientError:
+        s3.put_object(
+            Bucket=RAW_BUCKET,
+            Key=UNPARSEABLE_KEY,
+            Body=b"plain text has no parser",
+            ContentType="text/plain",
+            Metadata={"doc-id": "smoke-unsupported-format", "allowed-groups": "ops"},
+        )
+    # Registers the object deterministically instead of waiting on the async Lambda; idempotent.
+    backfill(s3, RAW_BUCKET, LAKE_BUCKET)
 
 
 @pytest.fixture(scope="module")
 def layers() -> dict[str, list[dict[str, Any]]]:
+    _ensure_unparseable_object()
     run_ingest("bronze", "silver", "gold")
     return {
         "bronze": table_rows("bronze", "objects"),
