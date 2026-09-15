@@ -35,7 +35,7 @@ run = "docker compose --profile core up -d --wait"
 
 [tasks.down]
 description = "Stop all local containers"
-run = "docker compose --profile core --profile ingest down"
+run = "docker compose --profile core --profile app --profile ingest down"
 
 [tasks.migrate]
 description = "Apply database migrations"
@@ -57,8 +57,12 @@ description = "Register manifests for raw objects whose S3 events were missed"
 run = "uv run python -m ingestion.lambda_register.backfill"
 
 [tasks.ingest]
-description = "Run the Spark bronze/silver/gold batch job (one-shot container)"
-run = "docker compose --profile ingest run --rm spark"
+description = "Run the Spark bronze/silver/gold batch job (one-shot container); stops the API first"
+# Spark and the API do not fit in the Docker VM together (docs/adr/0001); `mise run serve` after.
+run = [
+  "docker compose --profile app stop",
+  "docker compose --profile ingest run --rm spark",
+]
 
 [tasks.index]
 description = "Embed changed gold chunks into pgvector"
@@ -67,6 +71,10 @@ run = "uv run python -m ingestion.indexer.run"
 [tasks.api]
 description = "Run the query API locally with reload on :8000"
 run = "uv run uvicorn app.api.main:create_app --factory --reload --port 8000"
+
+[tasks.serve]
+description = "Build and start the query API container on :8000 (needs `mise run up`)"
+run = "docker compose --profile app up -d --build --wait"
 
 [tasks.token]
 description = "Mint a local JWT for a persona, e.g. `mise run token sales`"

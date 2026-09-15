@@ -68,8 +68,26 @@ silver + gold run over the seeded corpus (163 object events, 330 chunks):
 - **Image size is disk, not memory:** the ingest image is 3.3 GB (PySpark jars, the 690 MB AWS
   SDK bundle that S3A requires). Leaving uv's cache in the image doubled it to 7.4 GB.
 
+Serving (week 3): the `api` container (`app` profile, fake LLM provider) alongside core, idle and
+then right after 20 authenticated `/query` calls:
+
+| Container | Idle | After 20 queries | Limit | % of limit |
+|---|---|---|---|---|
+| api | 321 MiB | 337 MiB | 768 MiB | 44% |
+| mlflow | 354 MiB | 354 MiB | 512 MiB | 69% |
+| floci | 182 MiB | 182 MiB | 768 MiB | 24% |
+| postgres | 68 MiB | 73 MiB | 512 MiB | 14% |
+| **total** | **~925 MiB** | **~945 MiB** | 2,560 MiB | |
+
+- **API:** one uvicorn worker holding the bge-small ONNX model. Hybrid retrieval took ~27 ms per
+  query. The 768 MiB limit leaves room for the week 6 additions (tracing, metrics) and for a
+  second worker only if the model is not loaded per worker; scale with replicas instead.
+- **Image:** 988 MB, with the embedding model baked in so containers start offline.
+- **Profiles:** the API lives in the `app` profile rather than `core`, so `mise run up` stays at
+  ~600 MiB for ingest and test work. `mise run ingest` stops the `app` profile before Spark starts.
+
 ## Consequences
-- **Headroom:** ingest fits with ~1.9 GiB of the VM unused. Re-measure when the API exists (week 3) and update this ADR.
+- **Headroom:** ingest fits with ~1.9 GiB of the VM unused; serving uses under 1 GiB of it.
 - **Risk:** MLflow sits closest to its limit and its memory has been reported to creep upward over time ([mlflow#22792](https://github.com/mlflow/mlflow/issues/22792)). If steady-state use stays above ~460 MiB, raise it to 640 MiB and lower Floci to 640 MiB. Floci uses a quarter of its limit, so the total stays the same.
 - **CI:** GitHub-hosted runners have 16 GB, so the limits never bind there. They exist for local development and document the expected footprint of each service.
 - **Postgres tuning:** these settings are for a laptop. The AWS smoke environment (RDS) uses the parameter group defaults for its instance class.

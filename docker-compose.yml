@@ -1,7 +1,7 @@
 name: lakehouse-rag
 
-# Memory budget: Docker Desktop has ~3.9 GB. Core profile limits total ~1.8 GB (actual use is
-# lower) so the one-shot Spark ingest job (~1.5 GB) can run alongside it.
+# Memory budget (docs/adr/0001): Docker Desktop has ~3.9 GB. Core profile limits total ~1.8 GB,
+# plus either the app profile (API) for serving or the one-shot Spark ingest job, never both.
 
 services:
   postgres:
@@ -81,6 +81,34 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+
+  # Query API (`mise run serve`). Needs the core profile up; stopped while Spark ingests.
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    image: lakehouse-rag-api:local
+    profiles: ["app"]
+    restart: unless-stopped
+    environment:
+      RAG_ENV: local
+      RAG_DATABASE_URL: postgresql://rag:rag@postgres:5432/rag
+      RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-fake}
+      RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      # Bedrock Runtime on Floci for the bedrock provider.
+      AWS_ENDPOINT_URL: http://floci:4566
+    ports:
+      - "8000:8000"
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/ready')"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 6
 
   # One-shot medallion job (`mise run ingest`). Needs the core profile up; no depends_on because
   # services in an inactive profile cannot be dependencies.

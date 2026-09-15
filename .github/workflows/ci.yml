@@ -44,8 +44,8 @@ jobs:
       - run: mise run seed
       # Registers every seeded object deterministically instead of racing the async Lambda.
       - run: mise run backfill
-      - name: build ingest image
-        run: docker compose --profile ingest build spark
+      - name: build images
+        run: docker compose --profile ingest --profile app build spark api
       - run: mise run test-integration
       - name: container logs
         if: failure()

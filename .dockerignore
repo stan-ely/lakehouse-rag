@@ -3,5 +3,6 @@
 !pyproject.toml
 !uv.lock
 !docker/
+!app/
 !ingestion/
 **/__pycache__
