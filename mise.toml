@@ -38,8 +38,8 @@ description = "Stop all local containers"
 run = "docker compose --profile core --profile app --profile ingest down"
 
 [tasks.migrate]
-description = "Apply database migrations"
-run = "uv run alembic upgrade head"
+description = "Apply database migrations and enable local service logins"
+run = ["uv run alembic upgrade head", "uv run python -m db.local_logins"]
 
 [tasks.tf-local]
 description = "Provision AWS resources on Floci"

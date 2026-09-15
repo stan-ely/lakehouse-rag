@@ -6,7 +6,8 @@ columns and rows are filtered inside the view using the caller's `app.user_group
 - employee compensation: hr, exec
 - invoices: finance, sales, exec
 The SQL tool's sqlglot validator enforces the same allowlist before a query ever reaches
-Postgres; this layer holds even if the validator is bypassed.
+Postgres. Note: filtering on `app.user_groups` does not hold on its own, because the query can
+call `set_config`; migration 0006 replaces it with a context the query cannot change.
 
 Revision ID: 0004
 Revises: 0003

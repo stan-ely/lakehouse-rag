@@ -112,7 +112,10 @@ def test_compensation_view_filters_by_group(
     conn: psycopg.Connection, groups: list[str], visible: bool
 ) -> None:
     _seed_ops(conn)
-    _act_as(conn, "rag_sql_readonly", groups)
+    # The SQL tool's context (migration 0006): groups recorded, then the transaction read-only.
+    conn.execute("SELECT authz.begin_sql_request(%s::text[])", (groups,))
+    conn.execute("SET LOCAL transaction_read_only = on")
+    conn.execute("SET LOCAL ROLE rag_sql_readonly")
     rows = conn.execute(
         "SELECT employee_id FROM analytics.employee_compensation WHERE employee_id = 'EMP-T1'"
     ).fetchall()
