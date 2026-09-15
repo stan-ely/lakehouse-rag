@@ -91,4 +91,7 @@ files = ["app", "data_gen", "db", "ingestion", "tests"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+# Test modules are identified by path, so unit/ and integration/ may reuse basenames
+# (e.g. test_indexer.py) without __init__.py files.
+addopts = ["--import-mode=importlib"]
 markers = ["integration: requires the local docker/Floci stack"]
