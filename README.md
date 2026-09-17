@@ -35,8 +35,8 @@ Streamlit: persona switcher to demonstrate access control
 - **Grounding:** answers must cite their sources. Uncited or low-evidence answers become one uniform refusal, and retrieved text is wrapped as untrusted data.
 - **Guardrails and resilience:** prompt-injection attempts in retrieved text are detected, counted and marked for the model rather than silently dropped; PII is masked in answers and in traces; `/query` is rate limited per caller; a circuit breaker stops a dead provider from costing every request its timeout.
 - **Observability and cost:** structured JSON logs carrying identifiers but never content, Prometheus metrics with closed label sets, and USD cost per request. MLflow tracing is available but off by default, because a span records the question, the retrieved text and the answer. See [ADR 0004](docs/adr/0004-hardening-defaults.md).
-- **IaC and CI/CD:** the same Terraform modules target [Floci](https://github.com/floci-io/floci) locally and real AWS for smoke tests. GitHub Actions runs lint, types, tests, integration tests against Floci, and the eval gate.
-- **Databricks path:** the same Spark code ships as a Databricks Asset Bundle (serverless environment 6).
+- **IaC and CI/CD:** the same Terraform modules target [Floci](https://github.com/floci-io/floci) locally and real AWS for smoke tests. GitHub Actions runs lint, types, unit tests, `tflint`, `actionlint`, a checkov scan of the Terraform, a schema check of the Databricks bundle, then integration tests against a real Compose stack and the retrieval eval gate. `main` is protected: both jobs must pass.
+- **Databricks path:** the same Spark code ships as a Databricks Asset Bundle (serverless environment 6, Python 3.12 — the version mise pins locally). The job runs `ingestion/spark/run.py`, the module the ingest container runs, against the lake through a Unity Catalog external location. One implementation, two configurations.
 
 ## Stack
 Python 3.12 (matches Databricks serverless), FastAPI, PySpark + Delta Lake, Postgres 18 + pgvector, sqlglot, fastembed, Claude on Amazon Bedrock or the Anthropic API (pluggable; a fake provider for CI), MLflow 3, Terraform, Docker Compose, Floci, mise, uv.
@@ -61,6 +61,8 @@ mise run token sales  # JWT for a demo persona; then POST /query with `Authoriza
 mise run test       # unit tests
 mise run test-integration
 mise run eval       # score the golden set (retrieval only: deterministic, no model, no cost)
+mise run scan       # checkov over the Terraform
+mise run bundle-check  # databricks.yml against the bundle schema (no workspace needed)
 ```
 
 A `/query` response carries:
@@ -124,5 +126,5 @@ No model tried leaked restricted content or answered a question the caller had n
 4. ✅ Structured data: guarded text-to-SQL, router
 5. ✅ Evaluation harness and CI gate
 6. ✅ Hardening: guardrails, resilience, observability, Streamlit UI
-7. CI/CD and Databricks bundle
+7. 🚧 CI/CD and Databricks bundle: security scanning, bundle schema check (Free Edition run still to do)
 8. AWS smoke test and write-up
