@@ -25,6 +25,11 @@ HAIKU_US = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
         ("claude-haiku-4-5-20251001", "claude-haiku-4-5"),
         ("us.anthropic.claude-sonnet-5", "claude-sonnet-5"),
         ("claude-opus-5", "claude-opus-5"),
+        # Open-weight ids version themselves without the `v`, and must not lose the parameter
+        # count; `claude-opus-5` above is the case that stops the suffix rule being greedier.
+        ("openai.gpt-oss-120b-1:0", "openai.gpt-oss-120b"),
+        ("openai.gpt-oss-20b-1:0", "openai.gpt-oss-20b"),
+        ("qwen.qwen3-coder-30b-a3b-v1:0", "qwen.qwen3-coder-30b-a3b"),
     ],
 )
 def test_canonical_model(model_id: str, expected: str) -> None:
