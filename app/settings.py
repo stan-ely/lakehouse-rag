@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = Field(default=30, gt=0)
     anthropic_api_key: SecretStr | None = None
     bedrock_region: str = "us-east-1"
+    # Empty means real Bedrock. Local shells point every AWS SDK at Floci, whose Bedrock stub
+    # returns canned text, so reaching the real service has to be asked for explicitly.
+    bedrock_endpoint_url: str = ""
+
+    @property
+    def bedrock_endpoint(self) -> str | None:
+        return self.bedrock_endpoint_url or None
 
     @property
     def dsn(self) -> str:

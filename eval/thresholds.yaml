@@ -1,0 +1,26 @@
+# Gates for `mise run eval`. A run fails if a `min` metric falls below its floor or a `max`
+# metric rises above its ceiling. Metrics not listed are reported but never gate.
+#
+# `retrieval` runs without a language model (deterministic, free) and is the profile CI gates on.
+# `full` runs the whole pipeline against a real provider; it is the manual/nightly gate.
+retrieval:
+  min:
+    recall_at_k: 0.90
+    mrr: 0.75
+  max:
+    acl_leaks: 0
+    errors: 0
+
+full:
+  min:
+    recall_at_k: 0.90
+    mrr: 0.75
+    router_accuracy: 0.85
+    answer_correctness: 0.75
+    sql_success: 0.85
+    refusal_rate_restricted: 1.0
+    grounded_rate: 0.95
+  max:
+    acl_leaks: 0
+    errors: 0
+    unexpected_refusal_rate: 0.15

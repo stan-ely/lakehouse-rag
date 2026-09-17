@@ -1,9 +1,13 @@
 """Claude on Amazon Bedrock through the model-agnostic Converse API.
 
-boto3 honours AWS_ENDPOINT_URL, so locally this talks to Floci's Bedrock Runtime stub, which
-returns canned text with realistic usage: enough to exercise the provider, error handling and
-cost accounting without an AWS account. On `bedrock-runtime`, current Claude models need a geo
-or global inference profile id (e.g. `us.anthropic.claude-haiku-4-5-20251001-v1:0`).
+The endpoint is chosen explicitly rather than inherited: the local shell points every AWS SDK
+at Floci (AWS_ENDPOINT_URL), whose Bedrock Runtime stub returns canned text with realistic
+usage. That is right for tests and wrong for an evaluation run, which must reach real Bedrock
+while S3 and SQS stay local. `endpoint_url=None` therefore ignores the ambient endpoint
+configuration; pass Floci's URL to opt back in.
+
+On `bedrock-runtime`, current Claude models need a geo or global inference profile id
+(e.g. `us.anthropic.claude-sonnet-4-5-20250929-v1:0`).
 """
 
 import time
@@ -25,15 +29,21 @@ class BedrockProvider:
         *,
         region: str = "us-east-1",
         timeout_seconds: float = 30,
+        endpoint_url: str | None = None,
         client: Any = None,
     ) -> None:
         self._model = model
-        config = Config(
-            connect_timeout=5,
-            read_timeout=timeout_seconds,
-            retries={"max_attempts": 3, "mode": "adaptive"},
+        options: dict[str, Any] = {
+            "connect_timeout": 5,
+            "read_timeout": timeout_seconds,
+            "retries": {"max_attempts": 3, "mode": "adaptive"},
+            # Newer than the shipped botocore type stubs, hence the untyped mapping.
+            "ignore_configured_endpoint_urls": endpoint_url is None,
+        }
+        config = Config(**options)
+        self.client = client or boto3.client(
+            "bedrock-runtime", region_name=region, endpoint_url=endpoint_url, config=config
         )
-        self.client = client or boto3.client("bedrock-runtime", region_name=region, config=config)
 
     @property
     def model(self) -> str:

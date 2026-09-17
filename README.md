@@ -11,7 +11,7 @@ A production-grade enterprise RAG system for **Larkspur Logistics**, a fictional
 
 A router decides whether each question needs documents, SQL, or both.
 
-> Status: weeks 1–4 are done (foundation, ingestion, retrieval and generation, text-to-SQL and routing). **Week 5, the evaluation harness**, is next. The roadmap is below.
+> Status: weeks 1–5 are done (foundation, ingestion, retrieval and generation, text-to-SQL and routing, evaluation). **Week 6, production hardening**, is next. The roadmap is below.
 
 ## Architecture
 
@@ -58,6 +58,7 @@ mise run api        # or run it on the host with reload (RAG_LLM_PROVIDER=fake|b
 mise run token sales  # JWT for a demo persona; then POST /query with `Authorization: Bearer ...`
 mise run test       # unit tests
 mise run test-integration
+mise run eval       # score the golden set (retrieval only: deterministic, no model, no cost)
 ```
 
 A `/query` response carries:
@@ -72,16 +73,53 @@ The generator is deterministic (`--seed`, default 7) and dated as of 2026-08-31,
 
 Local runs target Floci by default. To use real AWS, set `MISE_ENV=aws`; this loads `mise.aws.toml` and removes the Floci endpoint overrides.
 
+## Evaluation
+
+`mise run eval` scores a golden set of 121 questions and fails on a regression or any ACL leak. Every expected answer is computed from the same modules that generate the corpus and the ops database (`data_gen/facts.py`, `data_gen/world.py`), so changing a business rule moves the documents, the rows and the expectations together instead of leaving a stale answer key.
+
+| Case kind | Count | What it checks |
+|---|---|---|
+| docs | 62 | the document that answers the question is retrieved, and the answer states the fact |
+| sql | 37 | the router picks `sql`, the generated query runs, and the number is right |
+| hybrid | 10 | policy and live records are combined in one answer |
+| acl | 12 | a caller without the group is refused, and the restricted text never reaches them |
+
+Two profiles, gated by `eval/thresholds.yaml`:
+
+```sh
+mise run eval        # retrieval: index and ACLs only, no model, free -- this is the CI gate
+mise run eval-full   # whole pipeline against real Bedrock; about a cent per run
+```
+
+Runs are logged to MLflow (`lakehouse-rag-eval` experiment on :5000) with the full per-case report as an artifact; `--no-mlflow` skips it, as CI does.
+
+**Retrieval profile** (the index on its own): recall@k 0.93, MRR 0.88, **0 ACL leaks**, ~26 ms per query. Every miss is a hybrid question naming a customer: tickets and emails about that customer outrank the policy page the question also needs. Reranking is a week 6 candidate.
+
+**Full profile** on Amazon Nova Lite ([ADR 0003](docs/adr/0003-evaluation-model.md) compares three models):
+
+| metric | result |
+|---|---|
+| router accuracy | 0.927 |
+| SQL execution success | 0.936 |
+| answer correctness | 0.872 |
+| recall@k (end to end) | 0.903 |
+| refusal on restricted questions | 1.000 |
+| **ACL leaks** | **0** |
+| cost / p50 latency | $0.013 per run / 1.6 s |
+
+No model tried leaked restricted content or answered a question the caller had no right to, which is the point: access control lives in Postgres and the retrieval filter, not in the model's judgement.
+
 ## Design decisions
 - [ADR 0001: Local memory budget](docs/adr/0001-local-memory-budget.md)
 - [ADR 0002: Text-to-SQL isolation](docs/adr/0002-text-to-sql-isolation.md)
+- [ADR 0003: Evaluation model choice](docs/adr/0003-evaluation-model.md)
 
 ## Roadmap
 1. ✅ Foundation: toolchain, Compose, Terraform on Floci, schema
 2. ✅ Ingestion: Lambda register, Spark medallion jobs, incremental indexer
 3. ✅ Retrieval and generation: hybrid search, citations, provider abstraction
 4. ✅ Structured data: guarded text-to-SQL, router
-5. Evaluation harness and CI gate
+5. ✅ Evaluation harness and CI gate
 6. Hardening: guardrails, resilience, observability, UI
 7. CI/CD and Databricks bundle
 8. AWS smoke test and write-up

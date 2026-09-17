@@ -97,6 +97,8 @@ services:
       RAG_AS_OF_DATE: "2026-08-31"
       RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-fake}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
+      # Floci's Bedrock stub by default; set empty to reach real Bedrock.
+      RAG_BEDROCK_ENDPOINT_URL: ${RAG_BEDROCK_ENDPOINT_URL-http://floci:4566}
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_DEFAULT_REGION: us-east-1
