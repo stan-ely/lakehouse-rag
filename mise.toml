@@ -114,8 +114,10 @@ description = "Check databricks.yml against the bundle schema (no workspace need
 # `databricks bundle validate` calls /scim/v2/Me, so it cannot run without workspace
 # credentials. `bundle schema` is offline, and checking the file against it catches the
 # structural mistakes — wrong key, wrong type, unknown field — without a secret in CI.
+# `mkdir -p` is not portable: mise runs tasks through cmd on Windows, where it creates a
+# directory called "-p". Python's mkdir is the same everywhere.
 run = [
-  "mkdir -p .cache",
+  "uv run python -c \"import pathlib; pathlib.Path('.cache').mkdir(exist_ok=True)\"",
   "databricks bundle schema > .cache/bundle-schema.json",
   "uvx check-jsonschema --schemafile .cache/bundle-schema.json databricks.yml",
 ]

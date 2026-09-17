@@ -75,6 +75,9 @@ targets:
   dev:
     mode: development
     default: true
+    # No host here on purpose: the workspace comes from the CLI profile, so a reader can point
+    # this at their own Free Edition workspace with `databricks auth login` and nothing else.
+    # With more than one profile for the same host, set DATABRICKS_CONFIG_PROFILE.
 
   smoke:
     mode: production
