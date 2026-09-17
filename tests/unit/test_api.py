@@ -166,3 +166,14 @@ def test_query_is_rate_limited_per_caller() -> None:
 
     assert codes == [200, 200, 429]
     assert other.status_code == 200, "one caller's burst does not throttle another"
+
+
+def test_metrics_endpoint_exposes_the_prometheus_text_format() -> None:
+    client = _client(StubService())
+    client.post("/query", json={"question": "Refunds?"}, headers=_auth())
+
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "rag_queries_total" in response.text
+    assert "Refunds?" not in response.text, "no question text ever reaches the scrape endpoint"
