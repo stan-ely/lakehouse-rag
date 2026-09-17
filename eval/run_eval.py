@@ -17,7 +17,7 @@ import logging
 import os
 import time
 from collections.abc import Sequence
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
@@ -106,16 +106,34 @@ def run_cases(stack: Stack, cases: Sequence[GoldenCase], *, mode: str, k: int) -
     return results
 
 
+# Retrieval mode never calls a model, so routing, generation and cost metrics would be noise.
+RETRIEVAL_METRICS = frozenset(
+    {"recall_at_k", "mrr", "acl_leaks", "errors", "p50_latency_ms", "p95_latency_ms"}
+)
+
+
+def for_mode(summary: Summary, mode: str) -> Summary:
+    if mode != "retrieval":
+        return summary
+    metrics = {k: v for k, v in summary.metrics.items() if k in RETRIEVAL_METRICS}
+    return replace(summary, metrics=metrics)
+
+
 def check_thresholds(summary: Summary, profile: dict[str, dict[str, float]]) -> list[str]:
+    """Metrics this run did not measure (a filtered subset) are skipped, not failed."""
     failures = []
     for name, floor in (profile.get("min") or {}).items():
         value = summary.metrics.get(name)
-        if value is None or value < floor:
-            failures.append(f"{name} {value:.3f} < {floor}" if value is not None else name)
+        if value is None:
+            failures.append(f"{name} not reported")
+        elif name in summary.measured and value < floor:
+            failures.append(f"{name} {value:.3f} < {floor}")
     for name, ceiling in (profile.get("max") or {}).items():
         value = summary.metrics.get(name)
-        if value is None or value > ceiling:
-            failures.append(f"{name} {value:.3f} > {ceiling}" if value is not None else name)
+        if value is None:
+            failures.append(f"{name} not reported")
+        elif name in summary.measured and value > ceiling:
+            failures.append(f"{name} {value:.3f} > {ceiling}")
     return failures
 
 
@@ -162,7 +180,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     with build_stack(settings) as stack:
         results = run_cases(stack, cases, mode=args.mode, k=settings.retrieval_k)
 
-    summary = summarise(results)
+    summary = for_mode(summarise(results), args.mode)
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(
         json.dumps(
@@ -194,6 +212,14 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     profile = yaml.safe_load(args.thresholds.read_text(encoding="utf-8"))[args.mode]
     failures = check_thresholds(summary, profile)
+    skipped = sorted(
+        name
+        for section in ("min", "max")
+        for name in (profile.get(section) or {})
+        if name in summary.metrics and name not in summary.measured
+    )
+    if skipped:
+        log.info("no cases measured %s; those gates are skipped", ", ".join(skipped))
     if summary.leaks:
         log.error("ACL leaks in: %s", ", ".join(summary.leaks))
     if failures:

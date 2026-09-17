@@ -130,6 +130,9 @@ def _ratio(numerator: int, denominator: int) -> float:
 class Summary:
     cases: int
     metrics: dict[str, float]
+    # Metrics whose denominator was non-empty. A filtered run (say, ACL cases only) measures
+    # nothing about retrieval, and the gate must not read that as a score of zero.
+    measured: frozenset[str] = frozenset()
     leaks: tuple[str, ...] = field(default_factory=tuple)
     errors: tuple[str, ...] = field(default_factory=tuple)
 
@@ -160,9 +163,21 @@ def summarise(results: Sequence[CaseResult]) -> Summary:
         "p95_latency_ms": _percentile([r.latency_ms for r in results], 0.95),
         "total_cost_usd": float(sum((r.cost_usd or Decimal(0) for r in results), Decimal(0))),
     }
+    populations = {
+        "recall_at_k": with_docs,
+        "mrr": with_docs,
+        "router_accuracy": answerable,
+        "answer_correctness": answerable,
+        "sql_success": sql_cases,
+        "refusal_rate_restricted": acl,
+        "grounded_rate": answered,
+        "unexpected_refusal_rate": answerable,
+    }
+    measured = {name for name in metrics if populations.get(name, results)}
     return Summary(
         cases=len(results),
         metrics=metrics,
+        measured=frozenset(measured),
         leaks=tuple(r.case_id for r in results if r.leaked),
         errors=tuple(r.case_id for r in results if r.error),
     )

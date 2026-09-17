@@ -26,6 +26,8 @@ DATABASE_URL = "postgresql+psycopg://rag:rag@localhost:5432/rag"
 RAG_AS_OF_DATE = "2026-08-31"
 # Keep the embedding model out of %TEMP%, which Windows cleans up.
 FASTEMBED_CACHE_PATH = "{{config_root}}/.cache/fastembed"
+# The Windows console defaults to cp1252, which crashes on the emoji MLflow prints.
+PYTHONIOENCODING = "utf-8"
 
 [tasks.sync]
 description = "Install all Python dependency groups"

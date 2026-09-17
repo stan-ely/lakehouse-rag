@@ -165,3 +165,15 @@ def test_thresholds_report_every_metric_that_misses() -> None:
     failures = check_thresholds(summary, {"min": {"recall_at_k": 0.9}, "max": {"acl_leaks": 0}})
 
     assert failures == ["recall_at_k 0.000 < 0.9"]
+
+
+def test_a_metric_with_no_cases_is_skipped_rather_than_failed() -> None:
+    acl = evaluate_case(
+        GoldenCase("a1", "q", "sales", Route.DOCS, forbidden=("secret",), must_refuse=True),
+        _answer(text="I don't have enough information.", refused=True, grounded=False),
+        5.0,
+    )
+    summary = summarise([acl])
+
+    assert "recall_at_k" not in summary.measured
+    assert check_thresholds(summary, {"min": {"recall_at_k": 0.9}, "max": {"acl_leaks": 0}}) == []
