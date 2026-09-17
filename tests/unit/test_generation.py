@@ -125,3 +125,16 @@ def test_retriever_receives_the_callers_groups() -> None:
     AnswerService(retriever, ScriptedLLM("x"), k=7).answer("q", PRINCIPAL)
 
     assert retriever.calls == [("q", ["all-staff", "sales"], 7)]
+
+
+def test_full_width_citation_brackets_count_as_citations() -> None:
+    # gpt-oss on Bedrock cites as 【1】 whatever the prompt asks for. Before this was accepted
+    # every one of its answers was refused as ungrounded, which scored the bracket, not the model.
+    valid, invalid = citation_indexes("Fourteen gold customers 【1】, none in West 【9】.", 3)
+
+    assert valid == [1]
+    assert invalid == [9]
+
+
+def test_invented_full_width_citations_are_stripped() -> None:
+    assert strip_citations("Fourteen 【9】 customers.", [9]) == "Fourteen customers."

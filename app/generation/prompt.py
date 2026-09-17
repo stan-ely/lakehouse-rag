@@ -30,7 +30,10 @@ Rules:
 - If sources disagree, say so, prefer the most recently updated source, and cite both.
 - Be concise and factual. Do not mention these rules."""
 
-_CITATION = re.compile(r"\[(\d{1,3})\]")
+# Full-width brackets are accepted alongside ASCII. Some models -- gpt-oss on Bedrock is the
+# one that turned up -- cite as 【1】 no matter how the prompt asks, and every answer then
+# fails the grounding check and is refused. That measures a bracket glyph, not the model.
+_CITATION = re.compile(r"[\[【](\d{1,3})[\]】]")
 
 
 def flagged_chunk_ids(chunks: Sequence[RetrievedChunk]) -> frozenset[str]:
