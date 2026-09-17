@@ -17,6 +17,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.api.ratelimit import RateLimiter
 from app.api.schemas import QueryRequest, QueryResponse, ReadyResponse
 from app.auth import AuthError, Principal, decode_token
 from app.bootstrap import Readiness, Stack, build_stack
@@ -70,6 +71,8 @@ def create_app(
     app.state.settings = settings or get_settings()
     app.state.service = service
     app.state.readiness = readiness or (lambda: {"service": app.state.service is not None})
+    rate = app.state.settings.rate_limit_per_minute
+    limiter = RateLimiter(rate, app.state.settings.rate_limit_burst) if rate else None
 
     @app.get("/health")
     def health() -> dict[str, str]:
@@ -89,6 +92,12 @@ def create_app(
         body: QueryRequest, principal: Annotated[Principal, Depends(get_principal)]
     ) -> QueryResponse:
         request_id = uuid.uuid4().hex
+        if limiter is not None and (wait := limiter.check(principal.subject)):
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "rate limit exceeded",
+                {"Retry-After": str(max(1, round(wait)))},
+            )
         try:
             answer = app.state.service.answer(body.question, principal)
         except CircuitOpen as exc:

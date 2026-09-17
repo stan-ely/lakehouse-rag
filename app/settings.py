@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_max_tokens: int = Field(default=1024, ge=1)
     llm_timeout_seconds: float = Field(default=30, gt=0)
+    # Per-caller /query limit, counted in this process only (see app/api/ratelimit.py).
+    # 0 disables it.
+    rate_limit_per_minute: float = Field(default=30, ge=0)
+    rate_limit_burst: int = Field(default=10, ge=1)
+
     # Consecutive provider failures that open the circuit; 0 disables it.
     llm_breaker_failures: int = Field(default=5, ge=0)
     llm_breaker_reset_seconds: float = Field(default=30, gt=0)

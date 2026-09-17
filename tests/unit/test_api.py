@@ -148,3 +148,21 @@ def test_an_open_circuit_is_503_with_retry_after() -> None:
     )
     assert response.status_code == 503
     assert response.headers["retry-after"] == "30"
+
+
+def test_query_is_rate_limited_per_caller() -> None:
+    limited = Settings(jwt_secret=SETTINGS.jwt_secret, rate_limit_per_minute=60, rate_limit_burst=2)
+    client = TestClient(
+        create_app(limited, service=StubService(), readiness=lambda: {"database": True})
+    )
+    ana = {"Authorization": f"Bearer {mint_token(limited, 'ana', ['all-staff'])}"}
+    bo = {"Authorization": f"Bearer {mint_token(limited, 'bo', ['all-staff'])}"}
+
+    codes = [
+        client.post("/query", json={"question": "Refunds?"}, headers=ana).status_code
+        for _ in range(3)
+    ]
+    other = client.post("/query", json={"question": "Refunds?"}, headers=bo)
+
+    assert codes == [200, 200, 429]
+    assert other.status_code == 200, "one caller's burst does not throttle another"
