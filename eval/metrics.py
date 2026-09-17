@@ -138,6 +138,12 @@ class Summary:
 
 
 def summarise(results: Sequence[CaseResult]) -> Summary:
+    """Aggregates one run.
+
+    In full mode `recall_at_k` is end to end, not a pure index score: a question the router
+    sends to SQL alone never retrieves documents, so bad routing lowers it. The retrieval
+    profile measures the index on its own.
+    """
     answerable = [r for r in results if r.kind != "acl"]
     with_docs = [r for r in answerable if r.kind in ("docs", "hybrid")]
     acl = [r for r in results if r.kind == "acl"]

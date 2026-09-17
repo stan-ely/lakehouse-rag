@@ -87,17 +87,32 @@ Local runs target Floci by default. To use real AWS, set `MISE_ENV=aws`; this lo
 Two profiles, gated by `eval/thresholds.yaml`:
 
 ```sh
-mise run eval                    # retrieval: index and ACLs only, no model, free -- the CI gate
-mise run eval -- --mode full     # whole pipeline; needs a real provider, so it costs money
+mise run eval        # retrieval: index and ACLs only, no model, free -- this is the CI gate
+mise run eval-full   # whole pipeline against real Bedrock; about a cent per run
 ```
 
 Runs are logged to MLflow (`lakehouse-rag-eval` experiment on :5000) with the full per-case report as an artifact; `--no-mlflow` skips it, as CI does.
 
-Current retrieval profile: **recall@k 0.93, MRR 0.88, 0 ACL leaks** over 121 cases, ~26 ms per query. Every miss is a hybrid question naming a customer: tickets and emails about that customer outrank the policy page that the question also needs. Reranking is a week 6 candidate.
+**Retrieval profile** (the index on its own): recall@k 0.93, MRR 0.88, **0 ACL leaks**, ~26 ms per query. Every miss is a hybrid question naming a customer: tickets and emails about that customer outrank the policy page the question also needs. Reranking is a week 6 candidate.
+
+**Full profile** on Amazon Nova Lite ([ADR 0003](docs/adr/0003-evaluation-model.md) compares three models):
+
+| metric | result |
+|---|---|
+| router accuracy | 0.927 |
+| SQL execution success | 0.936 |
+| answer correctness | 0.872 |
+| recall@k (end to end) | 0.903 |
+| refusal on restricted questions | 1.000 |
+| **ACL leaks** | **0** |
+| cost / p50 latency | $0.013 per run / 1.6 s |
+
+No model tried leaked restricted content or answered a question the caller had no right to, which is the point: access control lives in Postgres and the retrieval filter, not in the model's judgement.
 
 ## Design decisions
 - [ADR 0001: Local memory budget](docs/adr/0001-local-memory-budget.md)
 - [ADR 0002: Text-to-SQL isolation](docs/adr/0002-text-to-sql-isolation.md)
+- [ADR 0003: Evaluation model choice](docs/adr/0003-evaluation-model.md)
 
 ## Roadmap
 1. ✅ Foundation: toolchain, Compose, Terraform on Floci, schema
