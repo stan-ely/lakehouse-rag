@@ -88,7 +88,7 @@ ignore_missing_imports = true
 # Name modules from the repo root (tests.integration.lake), matching pytest's pythonpath.
 explicit_package_bases = true
 # Extend as packages land.
-files = ["app", "data_gen", "db", "eval", "ingestion", "tests"]
+files = ["app", "data_gen", "db", "eval", "ingestion", "tests", "ui"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
