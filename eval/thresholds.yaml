@@ -5,8 +5,12 @@
 # `full` runs the whole pipeline against a real provider; it is the manual/nightly gate.
 retrieval:
   min:
-    recall_at_k: 0.90
-    mrr: 0.75
+    # Retrieval scores 1.000/0.937 since hybrid questions search their document clauses
+    # (docs/adr/0005). The floors sit one case below that: 72 cases are scored, so a single
+    # miss is 0.014, which leaves room for HNSW to return a different neighbour without
+    # failing CI while still catching a real regression.
+    recall_at_k: 0.98
+    mrr: 0.92
   max:
     acl_leaks: 0
     errors: 0

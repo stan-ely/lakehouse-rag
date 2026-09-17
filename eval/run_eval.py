@@ -28,6 +28,7 @@ import yaml
 from app.auth import Principal
 from app.bootstrap import Stack, build_stack
 from app.generation.answer import Answer
+from app.router.classifier import Route, document_subquery, heuristic_route
 from app.settings import Settings, get_settings
 from app.tokens import PERSONAS
 from eval.golden import GoldenCase, build_golden_set
@@ -74,7 +75,14 @@ def _retrieval_only(stack: Stack, case: GoldenCase, principal: Principal, k: int
     """Score the index alone: what a caller's groups can reach for this question."""
     if stack.retriever is None:
         raise RuntimeError("retrieval mode needs a retriever")
-    chunks = stack.retriever.search(case.question, sorted(principal.groups), k)
+    # Serving searches a hybrid question's document clauses, not the whole question, so scoring
+    # the whole question here would measure a path the system never takes. The route comes from
+    # the heuristic rather than the case's label: it keeps this mode free of both the model and
+    # the answer key, and it is what serving itself falls back to when the router is unavailable.
+    question = case.question
+    if heuristic_route(question) is Route.HYBRID:
+        question = document_subquery(question)
+    chunks = stack.retriever.search(question, sorted(principal.groups), k)
     return Answer(
         text="",
         refused=not chunks,
