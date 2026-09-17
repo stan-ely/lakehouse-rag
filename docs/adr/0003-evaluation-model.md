@@ -46,8 +46,12 @@ at a seventieth of Pro's cost. Two results are worth keeping in mind:
 
 - **Pro routes worse than Lite** (0.807 vs 0.927). It sends plain policy questions to `hybrid`,
   which costs a pointless SQL attempt. That is a prompt problem, not a capability one.
-- **Micro is not usable here.** It refuses 15% of answerable questions and misroutes a quarter
-  of them, which drags end-to-end recall down to 0.667.
+- **Micro is not usable here**, and it fails structurally rather than marginally. It sends 19
+  plain document questions ("what is the nightly hotel cap?") to the SQL route, where there is
+  nothing to find, and then refuses 15 answerable questions for lack of evidence — a refusal
+  caused by its own routing, not by the index. Lite misroutes 8 questions and refuses 5. Since
+  Micro saves half a cent per run, there is no trade to make: the cheaper model is not cheaper
+  in any way that matters.
 
 No model leaked restricted content or failed to refuse, which is the result that matters most:
 access control is enforced in Postgres and in the retrieval filter, not by the model's
@@ -66,3 +70,7 @@ discretion.
   for the API itself.
 - Nova is weaker than Claude at the harder SQL cases (window functions, `GROUP BY` with extra
   projected columns), so thresholds reflect Nova's ceiling, not the system's.
+- Lite's remaining misses are concentrated in SQL: 6 of its 9 wrong answers are queries that run
+  but compute the wrong thing, which is the failure mode worth attacking next (few-shot examples
+  in the SQL prompt, or a repair step that feeds the result back). Routing and grounding are not
+  the bottleneck at this size.
