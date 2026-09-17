@@ -11,7 +11,7 @@ A production-grade enterprise RAG system for **Larkspur Logistics**, a fictional
 
 A router decides whether each question needs documents, SQL, or both.
 
-> Status: weeks 1–5 are done (foundation, ingestion, retrieval and generation, text-to-SQL and routing, evaluation). **Week 6, production hardening**, is next. The roadmap is below.
+> Status: weeks 1–6 are done (foundation, ingestion, retrieval and generation, text-to-SQL and routing, evaluation, production hardening). **Week 7, CI/CD and the Databricks bundle**, is next. The roadmap is below.
 
 ## Architecture
 
@@ -23,7 +23,7 @@ FastAPI /query (JWT groups): router → docs  | hybrid retrieval (RRF, ACL filte
                                    → sql   | model-written SQL → sqlglot allowlist → rag_sql login, read-only txn
                                    → hybrid| SQL result + retrieved chunks as numbered sources
            → cited answer, refusal when evidence is missing, PII masked → token usage and cost per request
-Streamlit (week 6): persona switcher to demonstrate access control
+Streamlit: persona switcher to demonstrate access control
 ```
 
 ## Production-readiness goals
@@ -33,7 +33,8 @@ Streamlit (week 6): persona switcher to demonstrate access control
   - Text-to-SQL is enforced twice, independently: a sqlglot allowlist for views and functions, and a least-privilege login whose group context the query cannot change.
   - See [ADR 0002](docs/adr/0002-text-to-sql-isolation.md).
 - **Grounding:** answers must cite their sources. Uncited or low-evidence answers become one uniform refusal, and retrieved text is wrapped as untrusted data.
-- **Observability and cost:** token usage and USD cost per request today; MLflow tracing, Prometheus metrics and structured logs in week 6.
+- **Guardrails and resilience:** prompt-injection attempts in retrieved text are detected, counted and marked for the model rather than silently dropped; PII is masked in answers and in traces; `/query` is rate limited per caller; a circuit breaker stops a dead provider from costing every request its timeout.
+- **Observability and cost:** structured JSON logs carrying identifiers but never content, Prometheus metrics with closed label sets, and USD cost per request. MLflow tracing is available but off by default, because a span records the question, the retrieved text and the answer. See [ADR 0004](docs/adr/0004-hardening-defaults.md).
 - **IaC and CI/CD:** the same Terraform modules target [Floci](https://github.com/floci-io/floci) locally and real AWS for smoke tests. GitHub Actions runs lint, types, tests, integration tests against Floci, and the eval gate.
 - **Databricks path:** the same Spark code ships as a Databricks Asset Bundle (serverless environment 6).
 
@@ -55,6 +56,7 @@ mise run ingest     # Spark container: bronze objects -> silver documents -> gol
 mise run index      # embed changed gold chunks into pgvector (incremental via change feed)
 mise run serve      # query API container on :8000 (768 MiB; `mise run ingest` stops it first)
 mise run api        # or run it on the host with reload (RAG_LLM_PROVIDER=fake|bedrock|anthropic)
+mise run ui         # Streamlit demo on :8501 (persona switcher; needs the API running)
 mise run token sales  # JWT for a demo persona; then POST /query with `Authorization: Bearer ...`
 mise run test       # unit tests
 mise run test-integration
@@ -64,7 +66,7 @@ mise run eval       # score the golden set (retrieval only: deterministic, no mo
 A `/query` response carries:
 - the answer and its citations
 - `route` and `route_method` (`llm`, `heuristic` or `fallback`)
-- any generated `sql` and `sql_error`
+- any generated `sql` and `sql_error`, **only when `RAG_EXPOSE_SQL` is set** — the SQL names tables, columns and filters, so it is schema disclosure by default
 - token usage, `cost_usd` and per-stage timings
 
 The fake provider is deterministic and free. With it, routing always falls back to the heuristic and SQL generation does not succeed, so use `bedrock` or `anthropic` to see SQL answers.
@@ -113,6 +115,7 @@ No model tried leaked restricted content or answered a question the caller had n
 - [ADR 0001: Local memory budget](docs/adr/0001-local-memory-budget.md)
 - [ADR 0002: Text-to-SQL isolation](docs/adr/0002-text-to-sql-isolation.md)
 - [ADR 0003: Evaluation model choice](docs/adr/0003-evaluation-model.md)
+- [ADR 0004: Hardening defaults](docs/adr/0004-hardening-defaults.md)
 
 ## Roadmap
 1. ✅ Foundation: toolchain, Compose, Terraform on Floci, schema
@@ -120,6 +123,6 @@ No model tried leaked restricted content or answered a question the caller had n
 3. ✅ Retrieval and generation: hybrid search, citations, provider abstraction
 4. ✅ Structured data: guarded text-to-SQL, router
 5. ✅ Evaluation harness and CI gate
-6. Hardening: guardrails, resilience, observability, UI
+6. ✅ Hardening: guardrails, resilience, observability, Streamlit UI
 7. CI/CD and Databricks bundle
 8. AWS smoke test and write-up
