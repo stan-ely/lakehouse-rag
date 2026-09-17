@@ -42,9 +42,11 @@ class StubSql:
 class StubRetriever:
     def __init__(self) -> None:
         self.calls = 0
+        self.queries: list[str] = []
 
     def search(self, query: str, groups: Sequence[str], k: int) -> list[RetrievedChunk]:
         self.calls += 1
+        self.queries.append(query)
         return [make_chunk(1)]
 
 
@@ -141,3 +143,28 @@ def test_unknown_component_cost_makes_the_total_unknown() -> None:
     service, _, _ = _service(Route.DOCS, None, router_cost=None)
 
     assert service.answer("Policy?", PRINCIPAL).cost_usd is None
+
+
+def test_hybrid_retrieval_searches_the_document_clauses_only() -> None:
+    # The records clause names a customer, and that name pulls every ticket mentioning them
+    # above the policy page. The SQL leg and the generation prompt still see the whole question.
+    service, retriever, llm = _service(Route.HYBRID, StubSql(_sql_outcome()))
+    question = (
+        "What first response time does our SLA policy promise Hardy Outfitters, "
+        "and how many of their shipments were delivered late in August 2026?"
+    )
+
+    service.answer(question, PRINCIPAL)
+
+    assert retriever.queries == [
+        "What first response time does our SLA policy promise Hardy Outfitters."
+    ]
+    assert question in llm.prompts[0]
+
+
+def test_docs_route_searches_the_whole_question() -> None:
+    service, retriever, _ = _service(Route.DOCS, None)
+
+    service.answer("What is the travel policy, and how do I claim a per diem?", PRINCIPAL)
+
+    assert retriever.queries == ["What is the travel policy, and how do I claim a per diem?"]

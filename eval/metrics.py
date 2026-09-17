@@ -21,12 +21,54 @@ def normalise(text: str) -> str:
     return _SPACE.sub(" ", _STRIP.sub("", text.lower())).strip()
 
 
+# English prose spells out small numbers, so an answer can be correct and still never contain
+# the digit: "There are three people in Executive" for an expected fact of "3". Scoring that as a
+# miss measures the model's prose style, not whether it got the number right. Twenty is where
+# spelling out stops being the normal choice.
+_NUMBER_WORDS = (
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+    "twenty",
+)
+
+
+def _word_form(needle: str) -> str | None:
+    """The English word for a small whole number, if there is one."""
+    if needle.isdigit() and int(needle) < len(_NUMBER_WORDS):
+        return _NUMBER_WORDS[int(needle)]
+    return None
+
+
 def contains(haystack: str, needle: str) -> bool:
     """Substring match, except that a purely numeric needle must stand as its own token."""
     needle = normalise(needle)
     if re.fullmatch(r"[\d.]+", needle):
         # A trailing full stop is sentence punctuation; a trailing ".5" is a different number.
-        return re.search(rf"(?<![\d.]){re.escape(needle)}(?!\d)(?!\.\d)", haystack) is not None
+        # Nothing stricter than that: an answer writes "retried 5x" or "5%", and requiring a word
+        # boundary after the digits would score those as misses.
+        if re.search(rf"(?<![\d.]){re.escape(needle)}(?!\d)(?!\.\d)", haystack):
+            return True
+        # The word form is a word, so it does need boundaries: "three" is not "threefold".
+        word = _word_form(needle)
+        return word is not None and re.search(rf"\b{word}\b", haystack) is not None
     return needle in haystack
 
 
@@ -50,6 +92,12 @@ class CaseResult:
     latency_ms: float
     cost_usd: Decimal | None
     error: str | None = None
+    # The answer as written. Twice now a case has been wrong for a reason the scores could not
+    # show -- a model citing 【1】, an answer saying "three" where the fact was "3" -- and each
+    # time diagnosing it meant paying for another run. The corpus is a synthetic company, so
+    # there is nothing here to keep out of a committed report, and `leaked` already records the
+    # one thing that would matter.
+    answer: str = ""
 
     @property
     def retrieval_hit(self) -> bool:
@@ -95,6 +143,7 @@ def evaluate_case(case: GoldenCase, answer: Answer, latency_ms: float) -> CaseRe
         sql_error=answer.sql_error,
         latency_ms=latency_ms,
         cost_usd=answer.cost_usd,
+        answer=answer.text,
     )
 
 

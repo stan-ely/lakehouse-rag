@@ -47,6 +47,32 @@ _DOC_PHRASES = re.compile(
 )
 
 
+# Hybrid questions are two questions in one sentence: a document part and a records part.
+# Splitting on sentence ends and ", and" is enough for that shape, and anything it does not
+# recognise falls through to the whole question, which is the behaviour it replaces.
+_CLAUSE = re.compile(r"(?<=[.!?])\s+|,\s+and\s+|;\s+and\s+|;\s+", re.IGNORECASE)
+
+
+def document_subquery(question: str) -> str:
+    """The document-shaped clauses of a hybrid question, for the retrieval leg only.
+
+    A hybrid question names an entity for the SQL leg ("...promise Hardy Outfitters, and how
+    many of their shipments were late..."), and that name pulls every ticket mentioning the
+    customer above the policy page that actually answers it -- far enough that the policy is
+    not in the candidate pool at all, so no amount of reranking recovers it. Searching with
+    the document clauses alone puts it back at rank 1.
+
+    The records clauses are not lost: the SQL leg still runs on the whole question, and the
+    caller still generates its answer from the whole question.
+    """
+    clauses = [clause.strip(" ,") for clause in _CLAUSE.split(question) if clause.strip(" ,")]
+    kept = [clause for clause in clauses if _DOC_PHRASES.search(clause)]
+    # All or nothing means the split found no document/records boundary to cut on.
+    if not kept or len(kept) == len(clauses):
+        return question
+    return " ".join(clause if clause.endswith("?") else f"{clause}." for clause in kept)
+
+
 def heuristic_route(question: str) -> Route:
     wants_records = bool(_RECORD_ID.search(question) or _SQL_PHRASES.search(question))
     wants_documents = bool(_DOC_PHRASES.search(question))

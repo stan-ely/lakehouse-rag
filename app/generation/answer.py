@@ -103,13 +103,20 @@ class AnswerService:
         *,
         extra_sources: Sequence[RetrievedChunk] = (),
         retrieve: bool = True,
+        retrieval_query: str | None = None,
     ) -> Answer:
-        """`extra_sources` (e.g. a SQL result) are numbered first, ahead of retrieved chunks."""
+        """`extra_sources` (e.g. a SQL result) are numbered first, ahead of retrieved chunks.
+
+        `retrieval_query` searches with something narrower than the question -- a hybrid
+        question's document clauses, say -- while the answer is still generated from the whole
+        question, so the model sees everything the caller asked.
+        """
         timings: dict[str, float] = {}
         chunks = list(extra_sources)
         if retrieve:
             start = time.perf_counter()
-            chunks += self.retriever.search(question, sorted(principal.groups), self.k)
+            search_for = retrieval_query or question
+            chunks += self.retriever.search(search_for, sorted(principal.groups), self.k)
             timings["retrieval"] = (time.perf_counter() - start) * 1000
 
         if not chunks:

@@ -34,6 +34,8 @@ data/out/
 data/lake/
 data/eval/
 mlruns/
+# Local sqlite tracking store, created when an eval run falls back off the MLflow container.
+mlflow.db
 mlartifacts/
 spark-warehouse/
 metastore_db/

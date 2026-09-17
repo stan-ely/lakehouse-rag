@@ -158,3 +158,30 @@ def test_result_source_renders_a_citable_table() -> None:
     assert "Acme | 12.50 | NULL" in source.content
     assert "Brightline | 7 | 2026-08-01" in source.content
     assert source.allowed_groups == ("all-staff", "sales")
+
+
+def test_the_worked_examples_and_schema_hints_reach_the_model() -> None:
+    # These carry the fixes for three measured mistakes (docs/adr/0006). They live in the system
+    # prompt and the view descriptions, so nothing else in the code would notice them going
+    # missing -- the next eval run would just quietly score worse.
+    llm = RepliesLLM("```sql\nSELECT 1 FROM analytics.shipments\n```")
+    tool = SqlTool(llm, StubExecutor(QueryResult("SELECT 1", ("n",), [(1,)], False)), as_of=AS_OF)
+
+    tool.run("How many shipments?", SUPPORT)
+
+    system, prompt = llm.systems[0], llm.prompts[0]
+    assert "ON c.account_manager_id = e.employee_id" in system
+    assert "GROUP BY c.tier" in system
+    assert "Filter on exactly what is asked and nothing more." in system
+    assert "Questions name a customer by name, never by customer_id" in prompt
+
+
+def test_the_examples_do_not_leak_a_real_customer_into_every_prompt() -> None:
+    # A worked example is sent on every SQL call, so a real name in one would be a standing hint
+    # about the data. Both names are absent from the generated company.
+    from data_gen.world import build_world
+    from eval.golden import SEED
+
+    names = {customer.name for customer in build_world(SEED).customers}
+    assert "Acme Freight" not in names
+    assert "Northwind Traders" not in names

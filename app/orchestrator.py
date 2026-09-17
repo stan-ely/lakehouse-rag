@@ -16,7 +16,7 @@ from app.generation.answer import Answer, AnswerService
 from app.llm.base import LLMError, Usage
 from app.llm.cost import add_costs
 from app.observability.tracing import traced
-from app.router.classifier import Route, RouteDecision
+from app.router.classifier import Route, RouteDecision, document_subquery
 from app.sql_tool.service import SqlOutcome, result_source
 
 
@@ -53,7 +53,16 @@ class QueryService:
         if outcome is not None and outcome.result is not None:
             sources.append(result_source(outcome, sorted(principal.groups)))
         retrieve = decision.route is not Route.SQL or not sources
-        answer = self.answers.answer(question, principal, extra_sources=sources, retrieve=retrieve)
+        # Only hybrid: its question carries a records clause naming an entity, which buries the
+        # policy page the document leg is looking for. A docs question has no such clause.
+        subquery = document_subquery(question) if decision.route is Route.HYBRID else None
+        answer = self.answers.answer(
+            question,
+            principal,
+            extra_sources=sources,
+            retrieve=retrieve,
+            retrieval_query=subquery,
+        )
 
         sql_usage = outcome.usage if outcome else Usage()
         sql_cost = outcome.cost_usd if outcome else Decimal(0)

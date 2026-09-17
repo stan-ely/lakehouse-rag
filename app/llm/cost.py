@@ -6,8 +6,9 @@ Anthropic models through AWS Marketplace at list price for global inference prof
 profiles (`us.`, `eu.`, ...) carry the 10% regional premium that page documents for Claude 4.5
 and later. Amazon's own models have one price per profile, so the premium is Anthropic-only.
 
-Amazon Nova prices come from the AWS Price List API (`AmazonBedrock`, us-east-1, on-demand,
-checked 2026-09-17), which is the same source AWS bills from.
+Amazon Nova and open-weight (OpenAI gpt-oss, Qwen) prices come from the AWS Price List API
+(`AmazonBedrock`, on-demand, checked 2026-09-17), which is the same source AWS bills from.
+Flex and priority tiers are deliberately not modelled: the provider calls the standard tier.
 
 Unknown models cost `None`, never a silent $0.
 """
@@ -38,6 +39,14 @@ PRICES: dict[str, Price] = {
     "amazon.nova-pro": Price(Decimal("0.80"), Decimal("3.20"), Decimal(0), Decimal("0.20")),
     "amazon.nova-lite": Price(Decimal("0.06"), Decimal("0.24"), Decimal(0), Decimal("0.015")),
     "amazon.nova-micro": Price(Decimal("0.035"), Decimal("0.14"), Decimal(0), Decimal("0.009")),
+    # Open-weight models on Bedrock, same Price List API source, us-west-2, checked 2026-09-17.
+    # None of them publishes a prompt-cache dimension, so both cache prices are zero and
+    # unreachable: the Converse call sends no cachePoint and usage reports no cached tokens.
+    "openai.gpt-oss-20b": Price(Decimal("0.07"), Decimal("0.30"), Decimal(0), Decimal(0)),
+    "openai.gpt-oss-120b": Price(Decimal("0.15"), Decimal("0.60"), Decimal(0), Decimal(0)),
+    "qwen.qwen3-coder-30b-a3b": Price(Decimal("0.15"), Decimal("0.60"), Decimal(0), Decimal(0)),
+    "qwen.qwen3-coder-480b-a35b": Price(Decimal("0.45"), Decimal("1.80"), Decimal(0), Decimal(0)),
+    "qwen.qwen3-32b": Price(Decimal("0.15"), Decimal("0.60"), Decimal(0), Decimal(0)),
 }
 
 
@@ -50,7 +59,11 @@ def canonical_model(model_id: str) -> str:
     name = model_id.lower()
     name = re.sub(r"^(global|us|eu|au|jp|apac)\.", "", name)
     name = name.removeprefix("anthropic.")
-    name = re.sub(r"-v\d+(:\d+)?$", "", name)
+    # Anthropic and Amazon version ids carry the `v`: `-v1:0`. The open-weight ids on Bedrock
+    # drop it (`openai.gpt-oss-120b-1:0`), so the bare form must end in `:0` to be stripped --
+    # matching a trailing `-<digits>` unconditionally would turn `claude-opus-5` into
+    # `claude-opus`.
+    name = re.sub(r"-v?\d+:\d+$|-v\d+$", "", name)
     return re.sub(r"-\d{8}$", "", name)
 
 

@@ -28,6 +28,7 @@ import yaml
 from app.auth import Principal
 from app.bootstrap import Stack, build_stack
 from app.generation.answer import Answer
+from app.router.classifier import Route, document_subquery, heuristic_route
 from app.settings import Settings, get_settings
 from app.tokens import PERSONAS
 from eval.golden import GoldenCase, build_golden_set
@@ -54,13 +55,15 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
 
 
 def _settings(args: argparse.Namespace) -> Settings:
-    overrides: dict[str, Any] = {}
+    # The circuit breaker is right for serving and wrong for scoring. A handful of transient
+    # provider faults trips it, and every case after that fails instantly with CircuitOpen
+    # before it can reset -- one blip became 19 lost cases and a score that looked like a
+    # capability result. A batch run wants every case attempted, so it is disabled here.
+    overrides: dict[str, Any] = {"llm_breaker_failures": 0}
     if args.provider:
         overrides["llm_provider"] = args.provider
     if args.model:
         overrides["llm_model"] = args.model
-    if not overrides:
-        return get_settings()
     return Settings(**{**get_settings().model_dump(), **overrides})
 
 
@@ -72,7 +75,14 @@ def _retrieval_only(stack: Stack, case: GoldenCase, principal: Principal, k: int
     """Score the index alone: what a caller's groups can reach for this question."""
     if stack.retriever is None:
         raise RuntimeError("retrieval mode needs a retriever")
-    chunks = stack.retriever.search(case.question, sorted(principal.groups), k)
+    # Serving searches a hybrid question's document clauses, not the whole question, so scoring
+    # the whole question here would measure a path the system never takes. The route comes from
+    # the heuristic rather than the case's label: it keeps this mode free of both the model and
+    # the answer key, and it is what serving itself falls back to when the router is unavailable.
+    question = case.question
+    if heuristic_route(question) is Route.HYBRID:
+        question = document_subquery(question)
+    chunks = stack.retriever.search(question, sorted(principal.groups), k)
     return Answer(
         text="",
         refused=not chunks,

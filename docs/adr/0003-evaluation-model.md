@@ -74,3 +74,81 @@ discretion.
   but compute the wrong thing, which is the failure mode worth attacking next (few-shot examples
   in the SQL prompt, or a repair step that feeds the result back). Routing and grounding are not
   the bottleneck at this size.
+
+## Revisited 2026-09-17: open-weight models
+
+The question was whether an open-weight model would do better on the SQL cases, which is
+where Nova Lite's remaining errors are concentrated. Bedrock's Converse API is model-agnostic
+and `run_eval.py` already takes `--model`, so this cost no code — only prices, which came from
+the same Price List API query, on demand, us-west-2. That query returned Nova Lite at exactly
+the values already in `app/llm/cost.py`, which is what says the method is sound.
+
+Self-hosting was never a candidate: 7.8 GB of RAM and 2 GB of VRAM (ADR 0001) put a useful
+model out of reach, and CPU inference would take an eval run from three minutes to over an
+hour, which is the property the whole harness depends on.
+
+Scored on the 37 SQL cases, breaker disabled, zero errors in each run:
+
+| | **Nova Lite** | gpt-oss-20b | gpt-oss-120b | Qwen3 Coder 30B |
+|---|---|---|---|---|
+| SQL execution success | **0.946** | 0.838 | 0.838 | 0.811 |
+| answer correctness | 0.838 | 0.811 | 0.730 | 0.865 |
+| router accuracy | **0.865** | 0.838 | 0.838 | 0.838 |
+| unexpected refusals | **0.054** | 0.054 | 0.081 | 0.108 |
+| p50 latency | 2.26 s | 3.80 s | 4.29 s | **2.04 s** |
+| cost per 37-case run | **$0.003** | $0.006 | $0.012 | $0.008 |
+
+**No open-weight model beats Nova Lite on SQL execution success**, which is the metric the
+exercise was run to move, and all of them cost more. Qwen3 Coder leads answer correctness by
+0.027 — one case — and is worse at the SQL itself.
+
+That one-case lead is worth naming as noise. Two identical Nova Lite runs scored 0.757 and
+0.838 answer correctness, so on 37 cases a single case is 0.027 and run-to-run variance is
+around three. **Only differences larger than about 0.08 mean anything at this sample size**,
+and none of the differences above clear that bar except Nova Lite's SQL success.
+
+The conclusion is the useful part: the remaining SQL errors are a prompt problem, not a model
+capability problem. Few-shot examples and a repair step stay the plan.
+
+### What the exercise exposed in the harness
+
+Both of these scored a mechanism rather than a model, and both are now fixed:
+
+- **Citations were matched as ASCII `[1]` only.** gpt-oss cites as full-width `【1】` whatever
+  the prompt asks, so every answer failed the grounding check and was refused. It scored 0.189
+  answer correctness while its SQL was correct and executing.
+- **The circuit breaker ran during scoring.** Two transient faults opened it sixteen cases in,
+  and the remaining nineteen failed instantly with `CircuitOpen`, faster than its own reset
+  window. The run reported 0.432 SQL success for questions the model was never asked. The
+  breaker is right for serving and wrong for batch measurement.
+
+### Operational note
+
+~~Third-party marketplace models on Bedrock — both the OpenAI and the Qwen ones, not Amazon's
+own — intermittently fail `Converse` with `ValidationException` on an internal
+`CreateOAuth2Token` operation.~~ **Wrong; corrected 2026-09-17.** This has nothing to do with
+Bedrock, or with which model is called.
+
+`CreateOAuth2Token` is how botocore renews an `aws login` session. The cached token in
+`~/.aws/login/cache/` lives for exactly 900 seconds, and
+`LoginCredentialFetcher._REFRESH_THRESHOLD` is 300, so once fewer than five minutes remain every
+request triggers a live renewal: reload the token, sign a DPoP header with the cached private
+key, call `signin.CreateOAuth2Token` with `grantType=refresh_token`. On this machine that
+renewal fails with `ValidationException` — a malformed request, not an auth denial — and the
+cache file's mtime shows no renewal has ever succeeded. **Each `aws login` therefore gives about
+ten usable minutes**, and every call after that fails no matter what it was calling.
+
+The evidence that looked like a model-specific fault fits this better. The window that failed 37
+of 37 was a run started late in a token's life; the 25 consecutive successes "minutes later"
+followed a fresh login. Concurrency, endpoint configuration and prompt size were all correctly
+ruled out — the cause was simply not in the list of things being tested, and the errors were
+attributed to the models that happened to be under test at the time.
+
+So the open-weight scores in the table above stand, and nothing here disqualifies those models
+on reliability grounds. The practical rule for any run that reaches real Bedrock: log in
+immediately beforehand, or resolve credentials once into the environment
+(`aws configure export-credentials --format env`) so botocore never attempts a renewal mid-run.
+
+The lesson is the same one this ADR keeps relearning: an error surfacing through a component is
+not evidence about that component. The bracket glyph scored the model, the breaker scored the
+harness, and this scored the credential chain.

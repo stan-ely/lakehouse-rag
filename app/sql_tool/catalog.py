@@ -28,7 +28,9 @@ VIEWS: tuple[View, ...] = (
     View(
         "customers",
         "One row per customer account. tier is gold, silver or bronze; sla_hours is the "
-        "contractual delivery SLA; account_manager_id references employee_directory.",
+        "contractual delivery SLA. Questions name a customer by name, never by customer_id, "
+        "so filter on name and join other views on customer_id. For the account manager, "
+        "join employee_directory on account_manager_id = employee_id and read full_name.",
         (
             ("customer_id", "text"),
             ("name", "text"),
@@ -42,8 +44,10 @@ VIEWS: tuple[View, ...] = (
     ),
     View(
         "shipments",
-        "One row per shipment. mode is road, rail, air or sea; status is booked, in_transit, "
-        "delivered or cancelled; is_late is true when delivered_at is after promised_at.",
+        "One row per shipment. mode is road, rail, air or sea. status is booked, in_transit, "
+        "delivered or cancelled, and covers every shipment ever placed, so a question about "
+        "shipments in general is not a question about status = 'booked'. is_late is true "
+        "when delivered_at is after promised_at.",
         (
             ("shipment_id", "text"),
             ("customer_id", "text"),
