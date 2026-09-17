@@ -82,6 +82,10 @@ run = "uv run uvicorn app.api.main:create_app --factory --reload --port 8000"
 description = "Build and start the query API container on :8000 (needs `mise run up`)"
 run = "docker compose --profile app up -d --build --wait"
 
+[tasks.ui]
+description = "Run the Streamlit demo UI on :8501 (needs `mise run api`)"
+run = "uv run streamlit run ui/streamlit_app.py"
+
 [tasks.token]
 description = "Mint a local JWT for a persona, e.g. `mise run token sales`"
 run = "uv run python -m app.tokens"

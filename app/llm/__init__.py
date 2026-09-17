@@ -1,6 +1,7 @@
 """LLM providers behind one interface, selected by configuration."""
 
 from app.llm.base import LLMProvider
+from app.llm.resilience import CircuitBreaker
 from app.settings import Settings
 
 DEFAULT_MODELS = {
@@ -11,6 +12,17 @@ DEFAULT_MODELS = {
 
 
 def build_provider(settings: Settings) -> LLMProvider:
+    provider = _build_provider(settings)
+    if settings.llm_breaker_failures == 0:
+        return provider
+    return CircuitBreaker(
+        provider,
+        failure_threshold=settings.llm_breaker_failures,
+        reset_seconds=settings.llm_breaker_reset_seconds,
+    )
+
+
+def _build_provider(settings: Settings) -> LLMProvider:
     model = settings.llm_model or DEFAULT_MODELS[settings.llm_provider]
     if settings.llm_provider == "anthropic":
         from app.llm.anthropic_api import AnthropicProvider

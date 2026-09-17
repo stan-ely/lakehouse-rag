@@ -8,21 +8,35 @@ Dependencies can be injected (`service`, `readiness`) so tests exercise the HTTP
 without a database or a model.
 """
 
+import time
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Annotated, Protocol
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.api.ratelimit import RateLimiter
 from app.api.schemas import QueryRequest, QueryResponse, ReadyResponse
 from app.auth import AuthError, Principal, decode_token
 from app.bootstrap import Readiness, Stack, build_stack
 from app.generation.answer import Answer
 from app.llm.base import LLMError, LLMTimeout
+from app.llm.resilience import CircuitOpen
+from app.observability.logging import (
+    bind_contextvars,
+    clear_contextvars,
+    configure_logging,
+    get_logger,
+)
+from app.observability.metrics import RATE_LIMITED, record_query
+from app.observability.tracing import configure_tracing
 from app.settings import Settings, get_settings
+
+log = get_logger(__name__)
 
 
 class QueryService(Protocol):
@@ -67,13 +81,22 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(title="lakehouse-rag", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings or get_settings()
+    configure_logging(app.state.settings.env)
+    configure_tracing(app.state.settings)
     app.state.service = service
     app.state.readiness = readiness or (lambda: {"service": app.state.service is not None})
+    rate = app.state.settings.rate_limit_per_minute
+    limiter = RateLimiter(rate, app.state.settings.rate_limit_burst) if rate else None
 
     @app.get("/health")
     def health() -> dict[str, str]:
         """Liveness: the process is serving requests."""
         return {"status": "ok"}
+
+    @app.get("/metrics")
+    def metrics() -> Response:
+        """Prometheus scrape target. Keep it off the public listener: it is unauthenticated."""
+        return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
     @app.get("/ready", response_model=ReadyResponse)
     def ready() -> JSONResponse:
@@ -88,14 +111,52 @@ def create_app(
         body: QueryRequest, principal: Annotated[Principal, Depends(get_principal)]
     ) -> QueryResponse:
         request_id = uuid.uuid4().hex
+        clear_contextvars()
+        bind_contextvars(request_id=request_id, subject=principal.subject)
+        if limiter is not None and (wait := limiter.check(principal.subject)):
+            RATE_LIMITED.inc()
+            log.warning("query.rate_limited", retry_after_s=round(wait, 1))
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "rate limit exceeded",
+                {"Retry-After": str(max(1, round(wait)))},
+            )
+        started = time.perf_counter()
         try:
             answer = app.state.service.answer(body.question, principal)
+        except CircuitOpen as exc:
+            log.error("query.circuit_open")
+            retry_after = str(int(app.state.settings.llm_breaker_reset_seconds))
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "language model unavailable",
+                {"Retry-After": retry_after},
+            ) from exc
         except LLMTimeout as exc:
+            log.error("query.provider_timeout")
             raise HTTPException(
                 status.HTTP_504_GATEWAY_TIMEOUT, "language model timed out"
             ) from exc
         except LLMError as exc:
+            log.error("query.provider_failed", error=type(exc).__name__)
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "language model unavailable") from exc
-        return QueryResponse.from_answer(request_id, answer)
+
+        seconds = time.perf_counter() - started
+        record_query(answer, seconds)
+        log.info(
+            "query.served",
+            route=answer.route,
+            refused=answer.refused,
+            refusal_reason=answer.refusal_reason,
+            grounded=answer.grounded,
+            citations=len(answer.citations),
+            flagged_sources=len(answer.flagged_sources),
+            model=answer.model,
+            cost_usd=None if answer.cost_usd is None else float(answer.cost_usd),
+            duration_ms=round(seconds * 1000, 1),
+        )
+        return QueryResponse.from_answer(
+            request_id, answer, expose_sql=app.state.settings.expose_sql
+        )
 
     return app

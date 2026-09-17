@@ -43,7 +43,10 @@ class QueryResponse(BaseModel):
     sql_error: str | None = None
 
     @classmethod
-    def from_answer(cls, request_id: str, answer: Answer) -> "QueryResponse":
+    def from_answer(
+        cls, request_id: str, answer: Answer, *, expose_sql: bool = False
+    ) -> "QueryResponse":
+        """`expose_sql` opts into returning the generated SQL and its error; see `Settings`."""
         return cls(
             request_id=request_id,
             answer=answer.text,
@@ -73,8 +76,8 @@ class QueryResponse(BaseModel):
             timings_ms=answer.timings_ms,
             route=answer.route,
             route_method=answer.route_method,
-            sql=answer.sql,
-            sql_error=answer.sql_error,
+            sql=answer.sql if expose_sql else None,
+            sql_error=answer.sql_error if expose_sql else None,
         )
 
 

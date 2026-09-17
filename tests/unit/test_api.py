@@ -8,6 +8,7 @@ from app.api.main import create_app
 from app.auth import Principal, mint_token
 from app.generation.answer import Answer, Citation
 from app.llm.base import LLMError, LLMTimeout, Usage
+from app.llm.resilience import CircuitOpen
 from app.settings import Settings
 
 SETTINGS = Settings(jwt_secret=SecretStr("api-test-secret-0123456789abcdef01234"))
@@ -109,3 +110,70 @@ def test_provider_failures_map_to_gateway_errors(error: Exception, code: int) ->
     assert response.status_code == code
     assert "slow" not in response.text
     assert "down" not in response.text
+
+
+SQL_ANSWER = Answer(
+    text="Four shipments arrived late [1].",
+    refused=False,
+    refusal_reason=None,
+    citations=[],
+    grounded=True,
+    retrieved=[],
+    route="sql",
+    sql="SELECT count(*) FROM rag_ops.shipments WHERE late",
+    sql_error=None,
+)
+
+
+def test_generated_sql_is_withheld_unless_the_setting_asks_for_it() -> None:
+    hidden = _client(StubService(SQL_ANSWER)).post(
+        "/query", json={"question": "Late shipments?"}, headers=_auth()
+    )
+    assert hidden.json()["sql"] is None
+    assert "rag_ops.shipments" not in hidden.text
+
+    debug = TestClient(
+        create_app(
+            SETTINGS.model_copy(update={"expose_sql": True}),
+            service=StubService(SQL_ANSWER),
+            readiness=lambda: {"database": True},
+        )
+    ).post("/query", json={"question": "Late shipments?"}, headers=_auth())
+    assert debug.json()["sql"] == "SELECT count(*) FROM rag_ops.shipments WHERE late"
+
+
+def test_an_open_circuit_is_503_with_retry_after() -> None:
+    response = _client(StubService(error=CircuitOpen("flaky is unavailable"))).post(
+        "/query", json={"question": "Refunds?"}, headers=_auth()
+    )
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "30"
+
+
+def test_query_is_rate_limited_per_caller() -> None:
+    limited = Settings(jwt_secret=SETTINGS.jwt_secret, rate_limit_per_minute=60, rate_limit_burst=2)
+    client = TestClient(
+        create_app(limited, service=StubService(), readiness=lambda: {"database": True})
+    )
+    ana = {"Authorization": f"Bearer {mint_token(limited, 'ana', ['all-staff'])}"}
+    bo = {"Authorization": f"Bearer {mint_token(limited, 'bo', ['all-staff'])}"}
+
+    codes = [
+        client.post("/query", json={"question": "Refunds?"}, headers=ana).status_code
+        for _ in range(3)
+    ]
+    other = client.post("/query", json={"question": "Refunds?"}, headers=bo)
+
+    assert codes == [200, 200, 429]
+    assert other.status_code == 200, "one caller's burst does not throttle another"
+
+
+def test_metrics_endpoint_exposes_the_prometheus_text_format() -> None:
+    client = _client(StubService())
+    client.post("/query", json={"question": "Refunds?"}, headers=_auth())
+
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "rag_queries_total" in response.text
+    assert "Refunds?" not in response.text, "no question text ever reaches the scrape endpoint"

@@ -95,6 +95,8 @@ services:
       RAG_DATABASE_URL: postgresql://rag:rag@postgres:5432/rag
       RAG_SQL_DATABASE_URL: postgresql://rag_sql:rag_sql@postgres:5432/rag
       RAG_AS_OF_DATE: "2026-08-31"
+      # The demo shows the generated SQL; production leaves this off (see app/settings.py).
+      RAG_EXPOSE_SQL: "true"
       RAG_LLM_PROVIDER: ${RAG_LLM_PROVIDER:-fake}
       RAG_LLM_MODEL: ${RAG_LLM_MODEL:-}
       # Floci's Bedrock stub by default; set empty to reach real Bedrock.

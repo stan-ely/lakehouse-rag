@@ -17,6 +17,7 @@ from app.generation.prompt import (
     SYSTEM_PROMPT,
     build_prompt,
     citation_indexes,
+    flagged_chunk_ids,
     strip_citations,
 )
 from app.llm.base import LLMProvider, Usage
@@ -60,6 +61,9 @@ class Answer:
     route_method: str | None = None
     sql: str | None = None
     sql_error: str | None = None
+    # Chunk ids whose text attempted prompt injection. They were still shown to the model,
+    # marked as suspicious; this records that they were seen, for metrics and traces.
+    flagged_sources: tuple[str, ...] = ()
 
 
 class AnswerService:
@@ -89,6 +93,7 @@ class AnswerService:
             grounded=False,
             retrieved=chunks,
             timings_ms=timings,
+            flagged_sources=tuple(sorted(flagged_chunk_ids(chunks))),
         )
 
     def answer(
@@ -112,9 +117,10 @@ class AnswerService:
         if not any(c.similarity >= self.min_similarity or c.lexical_rank for c in chunks):
             return self._refuse("low_relevance", chunks, timings)
 
+        flagged = flagged_chunk_ids(chunks)
         completion = self.llm.complete(
             system=SYSTEM_PROMPT,
-            prompt=build_prompt(question, chunks),
+            prompt=build_prompt(question, chunks, flagged),
             max_tokens=self.max_tokens,
         )
         timings["generation"] = completion.latency_ms
@@ -152,5 +158,6 @@ class AnswerService:
             grounded=True,
             retrieved=chunks,
             timings_ms=timings,
+            flagged_sources=tuple(sorted(flagged)),
             **billed,  # type: ignore[arg-type]
         )
