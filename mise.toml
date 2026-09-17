@@ -109,6 +109,21 @@ run = [
   "actionlint",
 ]
 
+[tasks.bundle-check]
+description = "Check databricks.yml against the bundle schema (no workspace needed)"
+# `databricks bundle validate` calls /scim/v2/Me, so it cannot run without workspace
+# credentials. `bundle schema` is offline, and checking the file against it catches the
+# structural mistakes — wrong key, wrong type, unknown field — without a secret in CI.
+run = [
+  "mkdir -p .cache",
+  "databricks bundle schema > .cache/bundle-schema.json",
+  "uvx check-jsonschema --schemafile .cache/bundle-schema.json databricks.yml",
+]
+
+[tasks.bundle-validate]
+description = "Full Databricks bundle validation (needs `databricks auth login`)"
+run = "databricks bundle validate -t dev"
+
 [tasks.scan]
 description = "Scan the Terraform for insecure configuration (checkov)"
 # Run isolated rather than as a dev dependency: checkov pins urllib3<2, which would downgrade

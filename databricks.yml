@@ -1,0 +1,88 @@
+# Databricks Asset Bundle: runs the medallion ingestion on serverless compute against the same
+# S3 lake the local stack uses, reached through a Unity Catalog external location rather than
+# S3A keys. The job runs `ingestion/spark/run.py` — the same module `mise run ingest` runs in the
+# container — so there is one implementation, configured differently.
+#
+#   mise run bundle-validate                  # offline check, no workspace needed
+#   databricks bundle deploy  -t dev
+#   databricks bundle run ingest -t dev
+bundle:
+  name: lakehouse-rag
+
+variables:
+  lake_root:
+    description: >-
+      s3:// URI of the lake, backed by a UC external location the job's principal can read and
+      write. Not s3a://: on Databricks the path goes through the storage credential, not S3A.
+    default: s3://larkspur-smoke-lake
+
+  notification_email:
+    description: Address for job failure notifications.
+    default: ""
+
+# Only what the job needs is uploaded. The API, the UI, the eval harness and the generated data
+# stay out of the workspace.
+sync:
+  paths:
+    - ingestion
+    - databricks
+  exclude:
+    - "**/__pycache__"
+    - "**/*.pyc"
+
+resources:
+  jobs:
+    ingest:
+      name: "[${bundle.target}] lakehouse-rag ingest"
+      description: bronze -> silver -> gold on the Larkspur lake
+      max_concurrent_runs: 1
+      queue:
+        enabled: true
+
+      # Serverless environment 6 is Python 3.12, which is what mise pins locally, so the code
+      # runs on the interpreter it was type-checked against. delta-spark is not a dependency
+      # here: Databricks Runtime provides Delta.
+      environments:
+        - environment_key: ingest
+          spec:
+            environment_version: "6"
+
+      tasks:
+        - task_key: bronze
+          environment_key: ingest
+          spark_python_task:
+            python_file: databricks/ingest_job.py
+            parameters: ["bronze", "--lake-root", "${var.lake_root}"]
+
+        - task_key: silver
+          depends_on:
+            - task_key: bronze
+          environment_key: ingest
+          spark_python_task:
+            python_file: databricks/ingest_job.py
+            parameters: ["silver", "--lake-root", "${var.lake_root}"]
+
+        - task_key: gold
+          depends_on:
+            - task_key: silver
+          environment_key: ingest
+          spark_python_task:
+            python_file: databricks/ingest_job.py
+            parameters: ["gold", "--lake-root", "${var.lake_root}"]
+
+targets:
+  # Free Edition: deploy under the developer's own path, run on demand, never scheduled.
+  dev:
+    mode: development
+    default: true
+
+  smoke:
+    mode: production
+    variables:
+      lake_root: s3://larkspur-smoke-lake
+    resources:
+      jobs:
+        ingest:
+          email_notifications:
+            on_failure:
+              - ${var.notification_email}
