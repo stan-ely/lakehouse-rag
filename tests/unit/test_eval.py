@@ -88,6 +88,16 @@ def test_numeric_facts_must_match_a_whole_number() -> None:
     assert not contains("we credit 10%", "1")
 
 
+def test_small_numbers_also_match_when_the_answer_spells_them_out() -> None:
+    # "There are three people in Executive" is a correct answer to a case expecting "3".
+    assert contains("there are three people in executive", "3")
+    assert contains("there are 3 people in executive", "3")
+    assert not contains("there are four people in executive", "3")
+    # Only a whole word: "threefold" is not the number, and large numbers keep digits only.
+    assert not contains("a threefold increase", "3")
+    assert not contains("one hundred and twelve invoices", "112")
+
+
 def test_text_facts_match_as_substrings() -> None:
     assert contains("escalate to the director of customer support", "director of customer support")
 

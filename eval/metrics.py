@@ -21,12 +21,52 @@ def normalise(text: str) -> str:
     return _SPACE.sub(" ", _STRIP.sub("", text.lower())).strip()
 
 
+# English prose spells out small numbers, so an answer can be correct and still never contain
+# the digit: "There are three people in Executive" for an expected fact of "3". Scoring that as a
+# miss measures the model's prose style, not whether it got the number right. Twenty is where
+# spelling out stops being the normal choice.
+_NUMBER_WORDS = (
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+    "twenty",
+)
+
+
+def _digit_forms(needle: str) -> list[str]:
+    """The needle plus its English word, when it is a small whole number."""
+    forms = [needle]
+    if needle.isdigit() and int(needle) < len(_NUMBER_WORDS):
+        forms.append(_NUMBER_WORDS[int(needle)])
+    return forms
+
+
 def contains(haystack: str, needle: str) -> bool:
     """Substring match, except that a purely numeric needle must stand as its own token."""
     needle = normalise(needle)
     if re.fullmatch(r"[\d.]+", needle):
         # A trailing full stop is sentence punctuation; a trailing ".5" is a different number.
-        return re.search(rf"(?<![\d.]){re.escape(needle)}(?!\d)(?!\.\d)", haystack) is not None
+        return any(
+            re.search(rf"(?<![\d.\w]){re.escape(form)}(?!\d)(?!\.\d)\b", haystack)
+            for form in _digit_forms(needle)
+        )
     return needle in haystack
 
 
