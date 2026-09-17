@@ -22,6 +22,8 @@ from psycopg import Connection
 from psycopg.rows import dict_row
 from psycopg_pool import ConnectionPool
 
+from app.observability.tracing import traced
+
 SEARCH_SQL = """
 WITH vector_hits AS (
     SELECT chunk_id,
@@ -106,6 +108,7 @@ class HybridRetriever:
         self.rrf_k = rrf_k
         self.ef_search = ef_search
 
+    @traced("RETRIEVER")
     def search(self, query: str, groups: Sequence[str], k: int) -> list[RetrievedChunk]:
         caller_groups = sorted({g for g in groups if g})
         if not caller_groups or not query.strip():

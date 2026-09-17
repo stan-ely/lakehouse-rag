@@ -33,6 +33,7 @@ from app.observability.logging import (
     get_logger,
 )
 from app.observability.metrics import RATE_LIMITED, record_query
+from app.observability.tracing import configure_tracing
 from app.settings import Settings, get_settings
 
 log = get_logger(__name__)
@@ -81,6 +82,7 @@ def create_app(
     app = FastAPI(title="lakehouse-rag", version="0.1.0", lifespan=lifespan)
     app.state.settings = settings or get_settings()
     configure_logging(app.state.settings.env)
+    configure_tracing(app.state.settings)
     app.state.service = service
     app.state.readiness = readiness or (lambda: {"service": app.state.service is not None})
     rate = app.state.settings.rate_limit_per_minute

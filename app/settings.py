@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_max_tokens: int = Field(default=1024, ge=1)
     llm_timeout_seconds: float = Field(default=30, gt=0)
+    # Traces record questions, retrieved text and answers, so turning this on moves restricted
+    # content into the tracking server. Off unless the deployment decides otherwise.
+    tracing_enabled: bool = False
+    mlflow_tracking_uri: str = ""
+
     # Per-caller /query limit, counted in this process only (see app/api/ratelimit.py).
     # 0 disables it.
     rate_limit_per_minute: float = Field(default=30, ge=0)

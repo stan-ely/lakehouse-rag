@@ -18,6 +18,7 @@ from typing import Any, Protocol
 from app.auth import Principal
 from app.llm.base import LLMProvider, Usage
 from app.llm.cost import add_costs, cost_usd
+from app.observability.tracing import traced
 from app.retrieval.hybrid import RetrievedChunk
 from app.sql_tool.catalog import SCHEMA, describe, views_for
 from app.sql_tool.executor import QueryResult, SQLExecutionError
@@ -84,6 +85,7 @@ class SqlTool:
         self.max_tokens = max_tokens
         self.as_of = as_of
 
+    @traced("TOOL")
     def run(self, question: str, principal: Principal) -> SqlOutcome:
         start = time.perf_counter()
         views = views_for(principal.groups)

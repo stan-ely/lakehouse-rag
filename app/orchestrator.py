@@ -15,6 +15,7 @@ from app.auth import Principal
 from app.generation.answer import Answer, AnswerService
 from app.llm.base import LLMError, Usage
 from app.llm.cost import add_costs
+from app.observability.tracing import traced
 from app.router.classifier import Route, RouteDecision
 from app.sql_tool.service import SqlOutcome, result_source
 
@@ -33,6 +34,7 @@ class QueryService:
         self.answers = answers
         self.sql_tool = sql_tool
 
+    @traced("CHAIN")
     def answer(self, question: str, principal: Principal) -> Answer:
         start = time.perf_counter()
         decision = self.router.route(question)
