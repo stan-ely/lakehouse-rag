@@ -124,9 +124,31 @@ Both of these scored a mechanism rather than a model, and both are now fixed:
 
 ### Operational note
 
-Third-party marketplace models on Bedrock — both the OpenAI and the Qwen ones, not Amazon's
+~~Third-party marketplace models on Bedrock — both the OpenAI and the Qwen ones, not Amazon's
 own — intermittently fail `Converse` with `ValidationException` on an internal
-`CreateOAuth2Token` operation. It is bursty rather than steady: one window failed 37 of 37
-calls while 25 consecutive calls minutes later all succeeded, and it is unrelated to
-concurrency, the ambient endpoint configuration or prompt size, all of which were tested.
-A model that cannot be called reliably is not a candidate regardless of its scores.
+`CreateOAuth2Token` operation.~~ **Wrong; corrected 2026-09-17.** This has nothing to do with
+Bedrock, or with which model is called.
+
+`CreateOAuth2Token` is how botocore renews an `aws login` session. The cached token in
+`~/.aws/login/cache/` lives for exactly 900 seconds, and
+`LoginCredentialFetcher._REFRESH_THRESHOLD` is 300, so once fewer than five minutes remain every
+request triggers a live renewal: reload the token, sign a DPoP header with the cached private
+key, call `signin.CreateOAuth2Token` with `grantType=refresh_token`. On this machine that
+renewal fails with `ValidationException` — a malformed request, not an auth denial — and the
+cache file's mtime shows no renewal has ever succeeded. **Each `aws login` therefore gives about
+ten usable minutes**, and every call after that fails no matter what it was calling.
+
+The evidence that looked like a model-specific fault fits this better. The window that failed 37
+of 37 was a run started late in a token's life; the 25 consecutive successes "minutes later"
+followed a fresh login. Concurrency, endpoint configuration and prompt size were all correctly
+ruled out — the cause was simply not in the list of things being tested, and the errors were
+attributed to the models that happened to be under test at the time.
+
+So the open-weight scores in the table above stand, and nothing here disqualifies those models
+on reliability grounds. The practical rule for any run that reaches real Bedrock: log in
+immediately beforehand, or resolve credentials once into the environment
+(`aws configure export-credentials --format env`) so botocore never attempts a renewal mid-run.
+
+The lesson is the same one this ADR keeps relearning: an error surfacing through a component is
+not evidence about that component. The bracket glyph scored the model, the breaker scored the
+harness, and this scored the credential chain.

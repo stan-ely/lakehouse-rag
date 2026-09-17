@@ -75,6 +75,47 @@ warned about with the circuit breaker: a failed run is recoverable, a plausible-
 answer is not. If the prompt fix leaves empty-result cases behind, this gets revisited with
 measurements rather than assumed.
 
-These changes are unmeasured at the time of writing: the AWS session had expired, and a full run
-needs a real provider. The gates in `eval/thresholds.yaml` are therefore unchanged. The next
-`mise run eval-full` decides whether this worked, and the numbers belong in ADR 0003's table.
+## Measured, 2026-09-17
+
+Two clean full runs on Nova Lite (121 cases, 0 errors, $0.014 each), against the pre-change
+baseline:
+
+| metric | baseline | run 1 | run 2 |
+|---|---|---|---|
+| answer_correctness | 0.872 | 0.917 | 0.899 |
+| sql_success | 0.936 | 0.957 | 0.894 |
+| recall_at_k (end to end) | 0.903 | 0.972 | 0.986 |
+| correct cases (of 109 answerable) | 95 | 100 | 98 |
+
+**Six cases were fixed and stayed fixed in both runs**: `sql-headcount-executive`,
+`sql-shipments-mode-road`, `sql-shipments-mode-rail`, `sql-invoices-disputed`,
+`sql-customer-late-1`, `sql-customer-late-2`. That is the id-versus-name confusion and the
+over-constraining gone, which is what the change was for.
+
+`sql_success` nevertheless reads *worse* in run 2 than at baseline, and the reason is not this
+change. It counts cases of kind `sql` or `hybrid` that produced a query with no error, so a case
+the router sends to `docs` scores zero on it without the SQL tool ever being called. Run 2
+misrouted all three `sql-account-manager-*` cases to `docs`; run 1 misrouted two. The metric is
+measuring the router through the SQL tool.
+
+That is the same mistake this ADR and ADR 0003 keep finding: a number attributed to the component
+it surfaced in rather than the one that caused it. `sql_success` should be read only over cases
+that actually reached the SQL tool, and that is worth fixing in `eval/metrics.py`.
+
+### What remains, by cause
+
+- **Router, 8 cases.** `sql-account-manager-*` ("Who is the account manager for X?" reads as a
+  documents question but the answer is in the database), `sql-customer-tier-*` sent to `hybrid`,
+  and `stale-hotel-cap` and `doc-pto-carryover` sent to `sql`. This is now the largest single
+  bucket and the obvious next piece of work.
+- **Policy values in hybrid answers, 3 cases.** The `hybrid-credit-*` cases get the count right
+  and the credit wrong, and `hybrid-credit-1` had the SQL model invent an `analytics.credit_policy`
+  view to join against. The rule telling it to leave policy to the document leg is not enough on
+  its own.
+- **Scoring, 1 case.** `doc-sla-credit-bronze` expects the literal fact `none` and the answer says
+  "receives no late delivery credit", which is correct English and a scored miss.
+- **Run-to-run variance.** Six cases flipped between two runs of the same code and model, so any
+  gap under roughly three cases (0.028) means nothing at this sample size.
+
+The gates in `eval/thresholds.yaml` stay unchanged: run 2 clears every one of them, and raising a
+floor to a number that variance alone can breach would make CI flaky rather than strict.
