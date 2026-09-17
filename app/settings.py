@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     llm_model: str | None = None
     llm_max_tokens: int = Field(default=1024, ge=1)
     llm_timeout_seconds: float = Field(default=30, gt=0)
+    # Consecutive provider failures that open the circuit; 0 disables it.
+    llm_breaker_failures: int = Field(default=5, ge=0)
+    llm_breaker_reset_seconds: float = Field(default=30, gt=0)
     anthropic_api_key: SecretStr | None = None
     bedrock_region: str = "us-east-1"
     # Empty means real Bedrock. Local shells point every AWS SDK at Floci, whose Bedrock stub

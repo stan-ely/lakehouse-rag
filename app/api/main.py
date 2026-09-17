@@ -22,6 +22,7 @@ from app.auth import AuthError, Principal, decode_token
 from app.bootstrap import Readiness, Stack, build_stack
 from app.generation.answer import Answer
 from app.llm.base import LLMError, LLMTimeout
+from app.llm.resilience import CircuitOpen
 from app.settings import Settings, get_settings
 
 
@@ -90,6 +91,13 @@ def create_app(
         request_id = uuid.uuid4().hex
         try:
             answer = app.state.service.answer(body.question, principal)
+        except CircuitOpen as exc:
+            retry_after = str(int(app.state.settings.llm_breaker_reset_seconds))
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "language model unavailable",
+                {"Retry-After": retry_after},
+            ) from exc
         except LLMTimeout as exc:
             raise HTTPException(
                 status.HTTP_504_GATEWAY_TIMEOUT, "language model timed out"

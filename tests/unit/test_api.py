@@ -8,6 +8,7 @@ from app.api.main import create_app
 from app.auth import Principal, mint_token
 from app.generation.answer import Answer, Citation
 from app.llm.base import LLMError, LLMTimeout, Usage
+from app.llm.resilience import CircuitOpen
 from app.settings import Settings
 
 SETTINGS = Settings(jwt_secret=SecretStr("api-test-secret-0123456789abcdef01234"))
@@ -139,3 +140,11 @@ def test_generated_sql_is_withheld_unless_the_setting_asks_for_it() -> None:
         )
     ).post("/query", json={"question": "Late shipments?"}, headers=_auth())
     assert debug.json()["sql"] == "SELECT count(*) FROM rag_ops.shipments WHERE late"
+
+
+def test_an_open_circuit_is_503_with_retry_after() -> None:
+    response = _client(StubService(error=CircuitOpen("flaky is unavailable"))).post(
+        "/query", json={"question": "Refunds?"}, headers=_auth()
+    )
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "30"

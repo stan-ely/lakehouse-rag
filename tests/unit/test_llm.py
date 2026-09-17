@@ -133,11 +133,19 @@ def test_bedrock_reaches_real_aws_unless_an_endpoint_is_configured(
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test")
     monkeypatch.delenv("RAG_BEDROCK_ENDPOINT_URL", raising=False)
 
-    real = cast(BedrockProvider, build_provider(Settings(llm_provider="bedrock")))
+    # llm_breaker_failures=0 returns the bare provider rather than a CircuitBreaker.
+    real = cast(
+        BedrockProvider,
+        build_provider(Settings(llm_provider="bedrock", llm_breaker_failures=0)),
+    )
     floci = cast(
         BedrockProvider,
         build_provider(
-            Settings(llm_provider="bedrock", bedrock_endpoint_url="http://localhost:4566")
+            Settings(
+                llm_provider="bedrock",
+                bedrock_endpoint_url="http://localhost:4566",
+                llm_breaker_failures=0,
+            )
         ),
     )
 
