@@ -109,6 +109,29 @@ run = [
   "actionlint",
 ]
 
+[tasks.bundle-check]
+description = "Check databricks.yml against the bundle schema (no workspace needed)"
+# `databricks bundle validate` calls /scim/v2/Me, so it cannot run without workspace
+# credentials. `bundle schema` is offline, and checking the file against it catches the
+# structural mistakes — wrong key, wrong type, unknown field — without a secret in CI.
+# `mkdir -p` is not portable: mise runs tasks through cmd on Windows, where it creates a
+# directory called "-p". Python's mkdir is the same everywhere.
+run = [
+  "uv run python -c \"import pathlib; pathlib.Path('.cache').mkdir(exist_ok=True)\"",
+  "databricks bundle schema > .cache/bundle-schema.json",
+  "uvx check-jsonschema --schemafile .cache/bundle-schema.json databricks.yml",
+]
+
+[tasks.bundle-validate]
+description = "Full Databricks bundle validation (needs `databricks auth login`)"
+run = "databricks bundle validate -t dev"
+
+[tasks.scan]
+description = "Scan the Terraform for insecure configuration (checkov)"
+# Run isolated rather than as a dev dependency: checkov pins urllib3<2, which would downgrade
+# the runtime the API and boto3 use. Every remaining finding is skipped in-line with a reason.
+run = "uvx --from checkov==3.3.18 checkov -d infra/terraform --compact --quiet"
+
 [tasks.eval]
 description = "Score the golden set on retrieval alone: deterministic, no model, no cost"
 run = "uv run python -m eval.run_eval"
