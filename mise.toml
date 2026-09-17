@@ -109,6 +109,12 @@ run = [
   "actionlint",
 ]
 
+[tasks.scan]
+description = "Scan the Terraform for insecure configuration (checkov)"
+# Run isolated rather than as a dev dependency: checkov pins urllib3<2, which would downgrade
+# the runtime the API and boto3 use. Every remaining finding is skipped in-line with a reason.
+run = "uvx --from checkov==3.3.18 checkov -d infra/terraform --compact --quiet"
+
 [tasks.eval]
 description = "Score the golden set on retrieval alone: deterministic, no model, no cost"
 run = "uv run python -m eval.run_eval"

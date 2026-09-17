@@ -27,6 +27,8 @@ jobs:
           terraform -chdir=infra/terraform/envs/local init -backend=false -input=false
           terraform -chdir=infra/terraform/envs/local validate
       - run: mise run lint
+      - name: terraform security scan
+        run: mise run scan
       - run: mise run test
 
   integration:

@@ -116,11 +116,28 @@ resource "aws_iam_role_policy" "this" {
 }
 
 resource "aws_cloudwatch_log_group" "this" {
+  # checkov:skip=CKV_AWS_158: CloudWatch encrypts log groups with a service key already. A CMK
+  # here would add a key policy to maintain for logs that carry S3 keys, not document content.
+  # checkov:skip=CKV_AWS_338: a year of retention is for an audit obligation this project does
+  # not have; 14 days is what a registration failure is actually investigated within.
   name              = "/aws/lambda/${var.name}"
   retention_in_days = var.log_retention_days
 }
 
 resource "aws_lambda_function" "this" {
+  # checkov:skip=CKV_AWS_116: failed batches are redriven to the queue's own DLQ (see the queue
+  # module), which is the right place for a function whose only trigger is SQS. A function-level
+  # DLQ would catch nothing extra and would split failures across two places.
+  # checkov:skip=CKV_AWS_117: the function talks to S3 and SQS over their public endpoints. A VPC
+  # would mean NAT or endpoints to pay for, and would not reduce what the function can reach.
+  # checkov:skip=CKV_AWS_173: the environment holds a bucket name and a prefix, not a secret.
+  # checkov:skip=CKV_AWS_272: code signing needs a signing profile and a release process; the
+  # package is built from this repo by `terraform apply` and has no separate supply chain.
+  # checkov:skip=CKV_AWS_115: concurrency is capped where it is actually triggered — the event
+  # source mapping sets maximum_concurrency (default 2), which is what protects a 7.8 GB laptop.
+  # Reserved concurrency would carve the same cap out of the account limit as well.
+  # checkov:skip=CKV_AWS_50: X-Ray on a single-step handler adds a trace nobody reads. The
+  # tracing that matters in this system is on the query path, in MLflow.
   function_name    = var.name
   role             = aws_iam_role.this.arn
   runtime          = "python3.12"
