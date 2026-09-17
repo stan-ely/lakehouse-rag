@@ -109,3 +109,33 @@ def test_provider_failures_map_to_gateway_errors(error: Exception, code: int) ->
     assert response.status_code == code
     assert "slow" not in response.text
     assert "down" not in response.text
+
+
+SQL_ANSWER = Answer(
+    text="Four shipments arrived late [1].",
+    refused=False,
+    refusal_reason=None,
+    citations=[],
+    grounded=True,
+    retrieved=[],
+    route="sql",
+    sql="SELECT count(*) FROM rag_ops.shipments WHERE late",
+    sql_error=None,
+)
+
+
+def test_generated_sql_is_withheld_unless_the_setting_asks_for_it() -> None:
+    hidden = _client(StubService(SQL_ANSWER)).post(
+        "/query", json={"question": "Late shipments?"}, headers=_auth()
+    )
+    assert hidden.json()["sql"] is None
+    assert "rag_ops.shipments" not in hidden.text
+
+    debug = TestClient(
+        create_app(
+            SETTINGS.model_copy(update={"expose_sql": True}),
+            service=StubService(SQL_ANSWER),
+            readiness=lambda: {"database": True},
+        )
+    ).post("/query", json={"question": "Late shipments?"}, headers=_auth())
+    assert debug.json()["sql"] == "SELECT count(*) FROM rag_ops.shipments WHERE late"

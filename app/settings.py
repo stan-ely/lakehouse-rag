@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     # 2026-08-31, so local environments pin it; unset means the real current date.
     as_of_date: date | None = None
 
+    # Generated SQL names tables, columns and filters, so returning it discloses the schema to
+    # anyone who can read a response body. Off by default; the demo UI turns it on.
+    expose_sql: bool = False
+
     llm_provider: Literal["fake", "bedrock", "anthropic"] = "fake"
     # None picks the provider's default (see app.llm.DEFAULT_MODELS).
     llm_model: str | None = None

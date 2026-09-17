@@ -96,6 +96,8 @@ def create_app(
             ) from exc
         except LLMError as exc:
             raise HTTPException(status.HTTP_502_BAD_GATEWAY, "language model unavailable") from exc
-        return QueryResponse.from_answer(request_id, answer)
+        return QueryResponse.from_answer(
+            request_id, answer, expose_sql=app.state.settings.expose_sql
+        )
 
     return app
