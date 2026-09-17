@@ -20,11 +20,7 @@ from app.llm.cost import cost_usd
 from app.retrieval.embedder import FastQueryEmbedder
 from app.retrieval.hybrid import HybridRetriever
 from app.settings import Settings
-from ingestion.indexer.embed import FastEmbedder
-from ingestion.indexer.run import index
-from ingestion.indexer.source import GoldSource
-from ingestion.indexer.store import PostgresStore
-from tests.integration.lake import ENDPOINT, LAKE_BUCKET, STORAGE_OPTIONS
+from tests.integration.lake import ENDPOINT, catch_up_index
 
 pytestmark = pytest.mark.integration
 
@@ -37,12 +33,8 @@ def pool() -> Iterator[ConnectionPool[Connection[Any]]]:
         SETTINGS.dsn, min_size=1, max_size=2, kwargs={"autocommit": True}, configure=register_vector
     ) as connection_pool:
         with connection_pool.connection() as conn:
-            # Catch the index up with gold (a no-op when current), whatever ran before.
-            source = GoldSource(f"s3://{LAKE_BUCKET}/delta/gold/chunks", STORAGE_OPTIONS)
-            index(source, PostgresStore(conn), FastEmbedder())
-            row = conn.execute("SELECT count(*) FROM rag.chunks").fetchone()
-        assert row is not None
-        assert row[0] > 0, "index is empty: run `mise run index` first"
+            chunks = catch_up_index(conn)
+        assert chunks > 0, "index is empty: run `mise run ingest` and `mise run index` first"
         yield connection_pool
 
 

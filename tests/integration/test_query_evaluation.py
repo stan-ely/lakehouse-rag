@@ -2,6 +2,9 @@
 
 Runs the retrieval profile on a subset, which needs no model and no MLflow. The full profile is
 a manual run, because it needs a real provider.
+
+Named to sort after the ingest tests (pytest runs files alphabetically), which are what build
+gold on a clean stack; the fixture then catches the index up with it.
 """
 
 from collections.abc import Iterator
@@ -13,6 +16,7 @@ from app.settings import Settings
 from eval.golden import GoldenCase, build_golden_set
 from eval.metrics import summarise
 from eval.run_eval import RETRIEVAL_METRICS, check_thresholds, for_mode, run_cases
+from tests.integration.lake import catch_up_index
 
 pytestmark = pytest.mark.integration
 
@@ -23,6 +27,9 @@ SUBSET = 12
 @pytest.fixture(scope="module")
 def stack() -> Iterator[Stack]:
     with build_stack(SETTINGS) as built:
+        with built.pools[0].connection() as conn:
+            chunks = catch_up_index(conn)
+        assert chunks > 0, "index is empty: run `mise run ingest` and `mise run index` first"
         yield built
 
 
