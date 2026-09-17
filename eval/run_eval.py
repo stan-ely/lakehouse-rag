@@ -54,13 +54,15 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
 
 
 def _settings(args: argparse.Namespace) -> Settings:
-    overrides: dict[str, Any] = {}
+    # The circuit breaker is right for serving and wrong for scoring. A handful of transient
+    # provider faults trips it, and every case after that fails instantly with CircuitOpen
+    # before it can reset -- one blip became 19 lost cases and a score that looked like a
+    # capability result. A batch run wants every case attempted, so it is disabled here.
+    overrides: dict[str, Any] = {"llm_breaker_failures": 0}
     if args.provider:
         overrides["llm_provider"] = args.provider
     if args.model:
         overrides["llm_model"] = args.model
-    if not overrides:
-        return get_settings()
     return Settings(**{**get_settings().model_dump(), **overrides})
 
 

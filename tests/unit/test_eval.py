@@ -1,5 +1,6 @@
 """The golden set must stay consistent with the corpus, and the metrics must score it honestly."""
 
+import argparse
 from decimal import Decimal
 
 import pytest
@@ -9,6 +10,7 @@ from app.router.classifier import Route
 from app.tokens import PERSONAS
 from data_gen.corpus import build_corpus
 from data_gen.world import build_world
+from eval import run_eval
 from eval.golden import SEED, GoldenCase, build_golden_set
 from eval.metrics import contains, evaluate_case, failed_case, normalise, summarise
 from eval.run_eval import check_thresholds
@@ -177,3 +179,11 @@ def test_a_metric_with_no_cases_is_skipped_rather_than_failed() -> None:
 
     assert "recall_at_k" not in summary.measured
     assert check_thresholds(summary, {"min": {"recall_at_k": 0.9}, "max": {"acl_leaks": 0}}) == []
+
+
+def test_eval_runs_disable_the_circuit_breaker() -> None:
+    # A breaker that opens mid-run fails every remaining case instantly, which scores the
+    # breaker rather than the model. Batch scoring wants each case attempted on its own.
+    args = argparse.Namespace(provider=None, model=None)
+
+    assert run_eval._settings(args).llm_breaker_failures == 0
