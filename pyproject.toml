@@ -34,6 +34,8 @@ datagen = [
 ]
 dev = [
     "boto3-stubs[s3,secretsmanager,sqs]>=1.43.93",
+    # `aws login` credentials (~/.aws/login) resolve only with the CRT extra.
+    "botocore[crt]>=1.43.93",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",

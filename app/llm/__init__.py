@@ -26,7 +26,10 @@ def build_provider(settings: Settings) -> LLMProvider:
         from app.llm.bedrock import BedrockProvider
 
         return BedrockProvider(
-            model, region=settings.bedrock_region, timeout_seconds=settings.llm_timeout_seconds
+            model,
+            region=settings.bedrock_region,
+            timeout_seconds=settings.llm_timeout_seconds,
+            endpoint_url=settings.bedrock_endpoint,
         )
     from app.llm.fake import FakeProvider
 

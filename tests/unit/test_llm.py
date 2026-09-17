@@ -1,5 +1,5 @@
 from decimal import Decimal
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from botocore.exceptions import ClientError, ReadTimeoutError
@@ -122,3 +122,24 @@ def test_build_provider_uses_per_provider_default_models() -> None:
 def test_anthropic_provider_requires_a_key() -> None:
     with pytest.raises(ValueError, match="API_KEY"):
         build_provider(Settings(llm_provider="anthropic", anthropic_api_key=None))
+
+
+def test_bedrock_reaches_real_aws_unless_an_endpoint_is_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # The local shell points every AWS SDK at Floci; an evaluation run must not inherit that.
+    monkeypatch.setenv("AWS_ENDPOINT_URL", "http://localhost:4566")
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "test")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "test")
+    monkeypatch.delenv("RAG_BEDROCK_ENDPOINT_URL", raising=False)
+
+    real = cast(BedrockProvider, build_provider(Settings(llm_provider="bedrock")))
+    floci = cast(
+        BedrockProvider,
+        build_provider(
+            Settings(llm_provider="bedrock", bedrock_endpoint_url="http://localhost:4566")
+        ),
+    )
+
+    assert "amazonaws.com" in real.client.meta.endpoint_url
+    assert floci.client.meta.endpoint_url == "http://localhost:4566"

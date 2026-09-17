@@ -28,6 +28,8 @@ RAG_AS_OF_DATE = "2026-08-31"
 FASTEMBED_CACHE_PATH = "{{config_root}}/.cache/fastembed"
 # The Windows console defaults to cp1252, which crashes on the emoji MLflow prints.
 PYTHONIOENCODING = "utf-8"
+# The bedrock provider talks to Floci's stub unless a task clears this (see `eval-full`).
+RAG_BEDROCK_ENDPOINT_URL = "http://localhost:4566"
 
 [tasks.sync]
 description = "Install all Python dependency groups"
@@ -104,5 +106,12 @@ run = [
 ]
 
 [tasks.eval]
-description = "Run the evaluation harness and log to MLflow"
+description = "Score the golden set on retrieval alone: deterministic, no model, no cost"
 run = "uv run python -m eval.run_eval"
+
+[tasks.eval-full]
+description = "Score the whole pipeline against real Bedrock (costs money; needs `aws login`)"
+# Reaches AWS for Bedrock only: S3, SQS and Secrets Manager stay on Floci, and Postgres stays
+# local. The dummy Floci credentials are cleared so the real ones in ~/.aws resolve.
+env = { RAG_LLM_PROVIDER = "bedrock", RAG_BEDROCK_ENDPOINT_URL = "", RAG_BEDROCK_REGION = "us-west-2", AWS_ACCESS_KEY_ID = false, AWS_SECRET_ACCESS_KEY = false }
+run = "uv run python -m eval.run_eval --mode full"
