@@ -98,6 +98,13 @@ def test_small_numbers_also_match_when_the_answer_spells_them_out() -> None:
     assert not contains("one hundred and twelve invoices", "112")
 
 
+def test_a_digit_still_matches_when_a_unit_is_stuck_to_it() -> None:
+    # Accepting the spelled-out form must not make the digit form any stricter than it was:
+    # answers write "retried 5x" and "a 25% credit", and both are the number the case expects.
+    assert contains("each delivery is retried 5x", "5")
+    assert contains("a 25% credit, capped monthly", "25")
+
+
 def test_text_facts_match_as_substrings() -> None:
     assert contains("escalate to the director of customer support", "director of customer support")
 
