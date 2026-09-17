@@ -1,9 +1,15 @@
 """Per-request LLM cost in USD from reported token usage.
 
-Prices are USD per million tokens from https://platform.claude.com/docs/en/about-claude/pricing
-(checked 2026-09-15). Bedrock bills Anthropic models through AWS Marketplace at list price for
-global inference profiles; geo profiles (`us.`, `eu.`, ...) carry the 10% regional premium that
-page documents for Claude 4.5 and later. Unknown models cost `None`, never a silent $0.
+Claude prices are USD per million tokens from
+https://platform.claude.com/docs/en/about-claude/pricing (checked 2026-09-15). Bedrock bills
+Anthropic models through AWS Marketplace at list price for global inference profiles; geo
+profiles (`us.`, `eu.`, ...) carry the 10% regional premium that page documents for Claude 4.5
+and later. Amazon's own models have one price per profile, so the premium is Anthropic-only.
+
+Amazon Nova prices come from the AWS Price List API (`AmazonBedrock`, us-east-1, on-demand,
+checked 2026-09-17), which is the same source AWS bills from.
+
+Unknown models cost `None`, never a silent $0.
 """
 
 import re
@@ -29,6 +35,9 @@ PRICES: dict[str, Price] = {
     "claude-haiku-4-5": Price(Decimal("1"), Decimal("5"), Decimal("1.25"), Decimal("0.10")),
     "claude-sonnet-5": Price(Decimal("2"), Decimal("10"), Decimal("2.50"), Decimal("0.20")),
     "claude-opus-5": Price(Decimal("5"), Decimal("25"), Decimal("6.25"), Decimal("0.50")),
+    "amazon.nova-pro": Price(Decimal("0.80"), Decimal("3.20"), Decimal(0), Decimal("0.20")),
+    "amazon.nova-lite": Price(Decimal("0.06"), Decimal("0.24"), Decimal(0), Decimal("0.015")),
+    "amazon.nova-micro": Price(Decimal("0.035"), Decimal("0.14"), Decimal(0), Decimal("0.009")),
 }
 
 
@@ -62,6 +71,8 @@ def cost_usd(model_id: str, usage: Usage) -> Decimal | None:
         + usage.cache_write_tokens * price.cache_write
         + usage.cache_read_tokens * price.cache_read
     ) / MILLION
-    if model_id.lower().startswith(_GEO_PREFIXES):
+    if canonical_model(model_id).startswith("claude-") and model_id.lower().startswith(
+        _GEO_PREFIXES
+    ):
         total *= REGIONAL_PREMIUM
     return total.quantize(Decimal("0.00000001"))

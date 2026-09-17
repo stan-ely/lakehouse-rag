@@ -143,3 +143,12 @@ def test_bedrock_reaches_real_aws_unless_an_endpoint_is_configured(
 
     assert "amazonaws.com" in real.client.meta.endpoint_url
     assert floci.client.meta.endpoint_url == "http://localhost:4566"
+
+
+def test_amazon_models_are_priced_without_the_anthropic_regional_premium() -> None:
+    usage = Usage(input_tokens=1_000_000, output_tokens=1_000_000)
+
+    # Nova has one price per profile; only Anthropic geo profiles carry the 10% premium.
+    assert cost_usd("us.amazon.nova-pro-v1:0", usage) == Decimal("4.00000000")
+    assert cost_usd("us.amazon.nova-lite-v1:0", usage) == Decimal("0.30000000")
+    assert canonical_model("us.amazon.nova-micro-v1:0") == "amazon.nova-micro"

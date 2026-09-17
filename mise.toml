@@ -113,5 +113,6 @@ run = "uv run python -m eval.run_eval"
 description = "Score the whole pipeline against real Bedrock (costs money; needs `aws login`)"
 # Reaches AWS for Bedrock only: S3, SQS and Secrets Manager stay on Floci, and Postgres stays
 # local. The dummy Floci credentials are cleared so the real ones in ~/.aws resolve.
-env = { RAG_LLM_PROVIDER = "bedrock", RAG_BEDROCK_ENDPOINT_URL = "", RAG_BEDROCK_REGION = "us-west-2", AWS_ACCESS_KEY_ID = false, AWS_SECRET_ACCESS_KEY = false }
+# Nova Pro is the model this account can call; `--model` overrides it.
+env = { RAG_LLM_PROVIDER = "bedrock", RAG_LLM_MODEL = "us.amazon.nova-pro-v1:0", RAG_BEDROCK_ENDPOINT_URL = "", RAG_BEDROCK_REGION = "us-west-2", AWS_ACCESS_KEY_ID = false, AWS_SECRET_ACCESS_KEY = false }
 run = "uv run python -m eval.run_eval --mode full"
