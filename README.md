@@ -11,7 +11,7 @@ A production-grade enterprise RAG system for **Larkspur Logistics**, a fictional
 
 A router decides whether each question needs documents, SQL, or both.
 
-> Status: weeks 1–6 are done (foundation, ingestion, retrieval and generation, text-to-SQL and routing, evaluation, production hardening). **Week 7, CI/CD and the Databricks bundle**, is next. The roadmap is below.
+> Status: weeks 1–7 are done (foundation, ingestion, retrieval and generation, text-to-SQL and routing, evaluation, production hardening, CI/CD). **Week 8** is in progress: the AWS smoke environment and the Databricks Free Edition run are built and ready to run ([ADR 0007](docs/adr/0007-aws-smoke-topology.md)), and the write-up follows. The roadmap is below.
 
 ## Architecture
 
@@ -36,7 +36,7 @@ Streamlit: persona switcher to demonstrate access control
 - **Guardrails and resilience:** prompt-injection attempts in retrieved text are detected, counted and marked for the model rather than silently dropped; PII is masked in answers and in traces; `/query` is rate limited per caller; a circuit breaker stops a dead provider from costing every request its timeout.
 - **Observability and cost:** structured JSON logs carrying identifiers but never content, Prometheus metrics with closed label sets, and USD cost per request. MLflow tracing is available but off by default, because a span records the question, the retrieved text and the answer. See [ADR 0004](docs/adr/0004-hardening-defaults.md).
 - **IaC and CI/CD:** the same Terraform modules target [Floci](https://github.com/floci-io/floci) locally and real AWS for smoke tests. GitHub Actions runs lint, types, unit tests, `tflint`, `actionlint`, a checkov scan of the Terraform, a schema check of the Databricks bundle, then integration tests against a real Compose stack and the retrieval eval gate. `main` is protected: both jobs must pass. A merge to `main` then publishes the API and Spark images to `ghcr.io/stan-ely/lakehouse-rag-{api,spark}`, tagged `sha-<commit>` for deployments to pin and `main` for convenience. CI authenticates with the built-in token, so no registry credential is stored in the repository.
-- **Databricks path:** the same Spark code ships as a Databricks Asset Bundle (serverless environment 6, Python 3.12 — the version mise pins locally). The job runs `ingestion/spark/run.py`, the module the ingest container runs, against the lake through a Unity Catalog external location. One implementation, two configurations.
+- **Databricks path:** the same Spark code ships as a Databricks Asset Bundle (serverless environment 6, Python 3.12 — the version mise pins locally). The job runs `ingestion/spark/run.py`, the module the ingest container runs, installed on the driver and executors as a wheel. Spark reaches the lake through a Unity Catalog external location, and bronze reads raw object versions through a UC service credential. One implementation, two configurations.
 
 ## Stack
 Python 3.12 (matches Databricks serverless), FastAPI, PySpark + Delta Lake, Postgres 18 + pgvector, sqlglot, fastembed, Claude on Amazon Bedrock or the Anthropic API (pluggable; a fake provider for CI), MLflow 3, Terraform, Docker Compose, Floci, mise, uv.
@@ -63,6 +63,15 @@ mise run test-integration
 mise run eval       # score the golden set (retrieval only: deterministic, no model, no cost)
 mise run scan       # checkov over the Terraform
 mise run bundle-check  # databricks.yml against the bundle schema (no workspace needed)
+```
+
+## AWS smoke test (same day, then destroy)
+Real S3, SQS, Lambda, RDS and Bedrock, with the Databricks Free Edition job building the lake. The laptop runs the indexer and the eval. It costs cents; a $5 budget alarm catches a forgotten destroy. The full sequence, including the two-pass Databricks credential setup, is in [ADR 0007](docs/adr/0007-aws-smoke-topology.md).
+
+```sh
+MISE_ENV=aws mise run tf-aws -var allowed_cidr=<your-ip>/32 -var budget_email=<you>
+MISE_ENV=aws mise run smoke           # migrate, seed, register, ingest, index, eval, report
+MISE_ENV=aws mise run tf-aws-destroy
 ```
 
 A `/query` response carries:
@@ -118,6 +127,9 @@ No model tried leaked restricted content or answered a question the caller had n
 - [ADR 0002: Text-to-SQL isolation](docs/adr/0002-text-to-sql-isolation.md)
 - [ADR 0003: Evaluation model choice](docs/adr/0003-evaluation-model.md)
 - [ADR 0004: Hardening defaults](docs/adr/0004-hardening-defaults.md)
+- [ADR 0005: Hybrid document subquery](docs/adr/0005-hybrid-document-subquery.md)
+- [ADR 0006: Fix text-to-SQL in the prompt](docs/adr/0006-sql-prompt-over-model.md)
+- [ADR 0007: AWS smoke topology](docs/adr/0007-aws-smoke-topology.md)
 
 ## Roadmap
 1. ✅ Foundation: toolchain, Compose, Terraform on Floci, schema
@@ -126,5 +138,5 @@ No model tried leaked restricted content or answered a question the caller had n
 4. ✅ Structured data: guarded text-to-SQL, router
 5. ✅ Evaluation harness and CI gate
 6. ✅ Hardening: guardrails, resilience, observability, Streamlit UI
-7. 🚧 CI/CD and Databricks bundle: security scanning, bundle schema check (Free Edition run still to do)
-8. AWS smoke test and write-up
+7. ✅ CI/CD and Databricks bundle: security scanning, bundle schema check, image publishing
+8. 🚧 AWS smoke test and Free Edition run (built, not yet run), then the write-up
