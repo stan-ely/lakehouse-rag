@@ -10,7 +10,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from ingestion.lambda_register.handler import Manifest
-from ingestion.spark.objects import MAX_OBJECT_BYTES, fetch_contents
+from ingestion.spark.objects import MAX_OBJECT_BYTES, Credentials, fetch_contents, raw_client
 from ingestion.spark.schemas import BRONZE_OBJECTS_DDL, MANIFEST_DDL, column_names
 
 
@@ -95,3 +95,24 @@ def test_bronze_extends_manifest_columns() -> None:
     bronze = column_names(BRONZE_OBJECTS_DDL)
     assert bronze[: len(fields(Manifest))] == [f.name for f in fields(Manifest)]
     assert bronze[-4:] == ["content", "content_sha256", "fetch_error", "ingested_at"]
+
+
+def test_driver_credentials_build_the_executor_client() -> None:
+    credentials = Credentials("AKIAEXAMPLE", "secret-value", "session-token", "us-east-1")
+
+    client = raw_client(credentials)
+    resolved = client._request_signer._credentials.get_frozen_credentials()  # type: ignore[attr-defined]
+
+    assert (resolved.access_key, resolved.secret_key, resolved.token) == (
+        "AKIAEXAMPLE",
+        "secret-value",
+        "session-token",
+    )
+    assert client.meta.region_name == "us-east-1"
+
+
+def test_credentials_never_render_the_secret() -> None:
+    credentials = Credentials("AKIAEXAMPLE", "secret-value", "session-token", "us-east-1")
+
+    assert "secret-value" not in repr(credentials)
+    assert "session-token" not in repr(credentials)

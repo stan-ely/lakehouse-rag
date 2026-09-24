@@ -70,3 +70,20 @@ def test_an_unknown_step_is_rejected(recorded: list[tuple[str, Settings]]) -> No
         run.main(["platinum"])
 
     assert recorded == []
+
+
+def test_service_credential_flag_reaches_bronze(recorded: list[tuple[str, Settings]]) -> None:
+    # On Databricks, boto3 in bronze has no credentials of its own; the job names a UC one.
+    run.main(["bronze", "--service-credential", "larkspur-raw"])
+
+    assert recorded[0][1].service_credential == "larkspur-raw"
+
+
+def test_service_credential_defaults_to_none(
+    recorded: list[tuple[str, Settings]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("RAG_SERVICE_CREDENTIAL", raising=False)
+
+    run.main(["bronze"])
+
+    assert recorded[0][1].service_credential is None

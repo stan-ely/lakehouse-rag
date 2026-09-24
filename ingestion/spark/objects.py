@@ -3,12 +3,19 @@
 Runs inside `mapInPandas` on executors, so it is plain pandas + boto3 and unit-testable without
 a JVM. Reading by version id (not by path) matters: if a page is edited twice before ingest runs,
 bronze must record each version's own bytes rather than the latest bytes twice.
+
+Credentials: locally and in the Lambda the default chain applies. On Databricks, a Unity
+Catalog external location gives Spark access to the lake but gives boto3 nothing, so the job
+names a UC *service credential*; the driver resolves it once per batch and the executors get
+the resulting short-lived keys (see `service_credentials`).
 """
 
 import hashlib
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING, Any
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, cast
 
+import boto3
 import pandas as pd
 from botocore.exceptions import ClientError
 
@@ -20,6 +27,48 @@ if TYPE_CHECKING:
 # Keeps one oversized upload from exhausting the ~1.5 GB ingest container.
 MAX_OBJECT_BYTES = 25 * 1024 * 1024
 _MISSING = {"404", "NoSuchKey", "NoSuchVersion"}
+
+
+@dataclass(frozen=True)
+class Credentials:
+    """Short-lived AWS keys handed from the driver to executors. Never logged or persisted."""
+
+    access_key: str
+    secret_key: str
+    token: str | None
+    region: str
+
+    def __repr__(self) -> str:
+        return f"Credentials(access_key={self.access_key[:4]}..., region={self.region})"
+
+
+def service_credentials(name: str, region: str) -> Credentials:
+    """Resolves a Unity Catalog service credential on the Databricks driver.
+
+    `dbutils` exists only on Databricks, hence the local import. The keys are temporary (about
+    an hour), which is why bronze resolves them per micro-batch rather than once per job.
+    """
+    from databricks.sdk.runtime import dbutils  # type: ignore[import-not-found,unused-ignore]
+
+    # The SDK's local dbutils stub predates service credentials; the runtime object has them.
+    provider = cast(Any, dbutils).credentials.getServiceCredentialsProvider(name)
+    resolved = boto3.Session(botocore_session=provider).get_credentials()
+    if resolved is None:
+        raise RuntimeError(f"service credential {name!r} resolved no AWS keys")
+    frozen = resolved.get_frozen_credentials()
+    return Credentials(str(frozen.access_key), str(frozen.secret_key), frozen.token, region)
+
+
+def raw_client(credentials: Credentials | None = None) -> "S3Client":
+    if credentials is None:
+        return s3_client()
+    session = boto3.Session(
+        aws_access_key_id=credentials.access_key,
+        aws_secret_access_key=credentials.secret_key,
+        aws_session_token=credentials.token,
+        region_name=credentials.region,
+    )
+    return session.client("s3")
 
 
 def _present(value: Any) -> bool:
@@ -48,9 +97,11 @@ def fetch_object(
 
 
 def fetch_contents(
-    frames: Iterable[pd.DataFrame], s3: "S3Client | None" = None
+    frames: Iterable[pd.DataFrame],
+    s3: "S3Client | None" = None,
+    credentials: Credentials | None = None,
 ) -> Iterator[pd.DataFrame]:
-    client = s3 or s3_client()
+    client = s3 or raw_client(credentials)
     for frame in frames:
         contents: list[bytes | None] = []
         hashes: list[str | None] = []

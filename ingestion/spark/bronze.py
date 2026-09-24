@@ -7,12 +7,13 @@ makes a replayed micro-batch, or a manifest rewritten by backfill, a no-op.
 """
 
 import logging
+from functools import partial
 
 from delta.tables import DeltaTable
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
-from ingestion.spark.objects import fetch_contents
+from ingestion.spark.objects import fetch_contents, service_credentials
 from ingestion.spark.schemas import BRONZE_OBJECTS_DDL, FETCHED_DDL, MANIFEST_DDL, column_names
 from ingestion.spark.settings import Settings
 
@@ -31,14 +32,20 @@ def ensure_table(spark: SparkSession, path: str, ddl: str) -> None:
     )
 
 
-def merge_batch(batch: DataFrame, table_path: str) -> None:
+def merge_batch(batch: DataFrame, table_path: str, settings: Settings) -> None:
     spark = batch.sparkSession
+    # Resolved here, on the driver, per batch: service-credential keys expire within the hour.
+    credentials = (
+        service_credentials(settings.service_credential, settings.region)
+        if settings.service_credential
+        else None
+    )
     fetched = (
         # The file source adds partition columns (dt=...) from the manifest path; mapInPandas
         # matches output columns by name, so pass exactly the contract columns through.
         batch.select(*column_names(MANIFEST_DDL))
         .dropDuplicates(["event_id"])
-        .mapInPandas(fetch_contents, FETCHED_DDL)
+        .mapInPandas(partial(fetch_contents, credentials=credentials), FETCHED_DDL)
         .withColumn("ingested_at", F.current_timestamp())
     )
     (
@@ -62,7 +69,7 @@ def run(spark: SparkSession, settings: Settings) -> None:
     query = (
         manifests.writeStream.trigger(availableNow=True)
         .option("checkpointLocation", settings.checkpoint_path("bronze_objects"))
-        .foreachBatch(lambda batch, _batch_id: merge_batch(batch, table_path))
+        .foreachBatch(lambda batch, _batch_id: merge_batch(batch, table_path, settings))
         .start()
     )
     query.awaitTermination()

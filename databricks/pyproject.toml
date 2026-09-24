@@ -1,0 +1,26 @@
+# Packages `ingestion/` as a wheel for the Databricks job. Serverless executors import the
+# `mapInPandas` functions by module name, so the code must be installed on them, not only
+# synced to the workspace next to the driver's entry script. The root pyproject is not a
+# package (tool.uv.package = false), so this build lives beside the bundle instead.
+[project]
+name = "lakehouse-rag-ingest"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+# Only what Databricks serverless environment 6 lacks: it ships Spark, Delta, boto3, pandas
+# and pyarrow. Keep in step with the `ingest` group in the root pyproject.toml.
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "pypdf>=6.18.1",
+    "python-docx>=1.2.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+exclude = ["**/__pycache__", "**/*.pyc"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"../ingestion" = "ingestion"

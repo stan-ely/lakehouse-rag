@@ -45,6 +45,7 @@ derby.log
 
 # Databricks
 .databricks/
+databricks/dist/
 
 # Editors / OS
 .vscode/*
