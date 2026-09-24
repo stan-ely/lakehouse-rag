@@ -54,6 +54,23 @@ run = [
   "terraform -chdir=infra/terraform/envs/local apply -auto-approve -input=false",
 ]
 
+[tasks.tf-aws]
+description = "Provision the same-day AWS smoke environment (real money; MISE_ENV=aws, `aws login`)"
+# No -auto-approve: this creates billable resources, so the plan is read before it applies.
+# Extra arguments go to apply, e.g. `-var allowed_cidr=203.0.113.7/32 -var budget_email=...`.
+run = [
+  "terraform -chdir=infra/terraform/envs/aws init -input=false",
+  "terraform -chdir=infra/terraform/envs/aws apply -input=false",
+]
+
+[tasks.tf-aws-destroy]
+description = "Destroy the AWS smoke environment; run it the same day as tf-aws"
+run = "terraform -chdir=infra/terraform/envs/aws destroy -input=false"
+
+[tasks.smoke]
+description = "Run the pipeline on AWS + Databricks and write docs/smoke/<date>.md (MISE_ENV=aws)"
+run = "uv run python -m eval.smoke"
+
 [tasks.seed]
 description = "Generate the synthetic Larkspur Logistics dataset and load sources"
 run = "uv run python -m data_gen.generate"

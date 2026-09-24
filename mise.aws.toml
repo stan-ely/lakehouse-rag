@@ -4,3 +4,8 @@ AWS_ENDPOINT_URL = false
 AWS_ACCESS_KEY_ID = false
 AWS_SECRET_ACCESS_KEY = false
 RAG_ENV = "aws"
+# Bedrock goes to the real service, not Floci's stub.
+RAG_BEDROCK_ENDPOINT_URL = false
+# No local Postgres fallback: eval/smoke.py builds the RDS URLs from Terraform outputs and the
+# master secret, so an unset URL fails loudly instead of quietly hitting localhost.
+DATABASE_URL = false
