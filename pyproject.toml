@@ -37,6 +37,7 @@ dev = [
     # `aws login` credentials (~/.aws/login) resolve only with the CRT extra.
     "botocore[crt]>=1.43.93",
     "mypy>=2.3.1",
+    "playwright>=1.63.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "types-pyyaml>=6.0.12.20260906",

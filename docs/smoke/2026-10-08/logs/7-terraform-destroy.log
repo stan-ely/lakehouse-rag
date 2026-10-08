@@ -1,0 +1,1237 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  - destroy
+
+Terraform will perform the following actions:
+
+  # aws_budgets_budget.smoke will be destroyed
+  - resource "aws_budgets_budget" "smoke" {
+      - account_id        = "<account>" -> null
+      - arn               = "arn:aws:budgets::<account>:budget/larkspur-smoke-monthly" -> null
+      - budget_type       = "COST" -> null
+      - id                = "<account>:larkspur-smoke-monthly" -> null
+      - limit_amount      = "5.0" -> null
+      - limit_unit        = "USD" -> null
+      - metrics           = [] -> null
+      - name              = "larkspur-smoke-monthly" -> null
+      - tags              = {} -> null
+      - tags_all          = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - time_period_end   = "2087-06-15_00:00" -> null
+      - time_period_start = "2026-10-01_00:00" -> null
+      - time_unit         = "MONTHLY" -> null
+        # (2 unchanged attributes hidden)
+
+      - cost_types {
+          - include_credit             = true -> null
+          - include_discount           = true -> null
+          - include_other_subscription = true -> null
+          - include_recurring          = true -> null
+          - include_refund             = true -> null
+          - include_subscription       = true -> null
+          - include_support            = true -> null
+          - include_tax                = true -> null
+          - include_upfront            = true -> null
+          - use_amortized              = false -> null
+          - use_blended                = false -> null
+        }
+
+      - notification {
+          - comparison_operator        = "GREATER_THAN" -> null
+          - notification_type          = "ACTUAL" -> null
+          - subscriber_email_addresses = [
+              - "aws-alerts.g1flf@passmail.com",
+            ] -> null
+          - subscriber_sns_topic_arns  = [] -> null
+          - threshold                  = 80 -> null
+          - threshold_type             = "PERCENTAGE" -> null
+        }
+      - notification {
+          - comparison_operator        = "GREATER_THAN" -> null
+          - notification_type          = "FORECASTED" -> null
+          - subscriber_email_addresses = [
+              - "aws-alerts.g1flf@passmail.com",
+            ] -> null
+          - subscriber_sns_topic_arns  = [] -> null
+          - threshold                  = 100 -> null
+          - threshold_type             = "PERCENTAGE" -> null
+        }
+    }
+
+  # aws_s3_bucket_notification.raw_to_ingest will be destroyed
+  - resource "aws_s3_bucket_notification" "raw_to_ingest" {
+      - bucket      = "larkspur-smoke-raw" -> null
+      - eventbridge = false -> null
+      - id          = "larkspur-smoke-raw" -> null
+      - region      = "us-east-1" -> null
+
+      - queue {
+          - events        = [
+              - "s3:ObjectCreated:*",
+              - "s3:ObjectRemoved:*",
+            ] -> null
+          - id            = "tf-s3-queue-20261008050337996300000001" -> null
+          - queue_arn     = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest" -> null
+            # (2 unchanged attributes hidden)
+        }
+    }
+
+  # module.database.aws_db_instance.this will be destroyed
+  - resource "aws_db_instance" "this" {
+      - address                               = "<rds-host>" -> null
+      - allocated_storage                     = 20 -> null
+      - apply_immediately                     = true -> null
+      - arn                                   = "arn:aws:rds:us-east-1:<account>:db:larkspur-smoke" -> null
+      - auto_minor_version_upgrade            = true -> null
+      - availability_zone                     = "us-east-1f" -> null
+      - backup_retention_period               = 0 -> null
+      - backup_target                         = "region" -> null
+      - backup_window                         = "10:28-10:58" -> null
+      - ca_cert_identifier                    = "rds-ca-rsa2048-g1" -> null
+      - copy_tags_to_snapshot                 = false -> null
+      - customer_owned_ip_enabled             = false -> null
+      - database_insights_mode                = "standard" -> null
+      - db_name                               = "rag" -> null
+      - db_subnet_group_name                  = "larkspur-smoke" -> null
+      - dedicated_log_volume                  = false -> null
+      - delete_automated_backups              = true -> null
+      - deletion_protection                   = false -> null
+      - domain_dns_ips                        = [] -> null
+      - enabled_cloudwatch_logs_exports       = [] -> null
+      - endpoint                              = "<rds-host>:5432" -> null
+      - engine                                = "postgres" -> null
+      - engine_lifecycle_support              = "open-source-rds-extended-support" -> null
+      - engine_version                        = "18" -> null
+      - engine_version_actual                 = "18.3" -> null
+      - hosted_zone_id                        = "Z2R2ITUGPM61AM" -> null
+      - iam_database_authentication_enabled   = false -> null
+      - id                                    = "db-S5NY3FMUFQHE5N6G2GWRLJBD5A" -> null
+      - identifier                            = "larkspur-smoke" -> null
+      - instance_class                        = "db.t3.micro" -> null
+      - iops                                  = 3000 -> null
+      - kms_key_id                            = "arn:aws:kms:us-east-1:<account>:key/712dd0a9-28ff-4b7d-a724-eefef777d1ba" -> null
+      - license_model                         = "postgresql-license" -> null
+      - listener_endpoint                     = [] -> null
+      - maintenance_window                    = "fri:06:52-fri:07:22" -> null
+      - manage_master_user_password           = true -> null
+      - master_user_secret                    = [
+          - {
+              - kms_key_id    = "arn:aws:kms:us-east-1:<account>:key/f1fd9264-60b3-4d7d-997b-30452742d52f"
+              - secret_arn    = "arn:aws:secretsmanager:us-east-1:<account>:secret:rds!db-4c46fcc9-2cec-423a-9e64-74d5274a2b42-Vybkq9"
+              - secret_status = "active"
+            },
+        ] -> null
+      - max_allocated_storage                 = 0 -> null
+      - monitoring_interval                   = 0 -> null
+      - multi_az                              = false -> null
+      - network_type                          = "IPV4" -> null
+      - option_group_name                     = "default:postgres-18" -> null
+      - parameter_group_name                  = "larkspur-smoke" -> null
+      - password_wo                           = (write-only attribute) -> null
+      - performance_insights_enabled          = false -> null
+      - performance_insights_retention_period = 0 -> null
+      - port                                  = 5432 -> null
+      - publicly_accessible                   = true -> null
+      - region                                = "us-east-1" -> null
+      - replicas                              = [] -> null
+      - resource_id                           = "db-S5NY3FMUFQHE5N6G2GWRLJBD5A" -> null
+      - skip_final_snapshot                   = true -> null
+      - status                                = "available" -> null
+      - storage_encrypted                     = true -> null
+      - storage_throughput                    = 125 -> null
+      - storage_type                          = "gp3" -> null
+      - tags                                  = {} -> null
+      - tags_all                              = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - upgrade_rollout_order                 = "second" -> null
+      - username                              = "rag_admin" -> null
+      - vpc_security_group_ids                = [
+          - "sg-040d0088eb4fc291c",
+        ] -> null
+        # (15 unchanged attributes hidden)
+    }
+
+  # module.database.aws_db_parameter_group.this will be destroyed
+  - resource "aws_db_parameter_group" "this" {
+      - arn          = "arn:aws:rds:us-east-1:<account>:pg:larkspur-smoke" -> null
+      - description  = "Managed by Terraform" -> null
+      - family       = "postgres18" -> null
+      - id           = "larkspur-smoke" -> null
+      - name         = "larkspur-smoke" -> null
+      - region       = "us-east-1" -> null
+      - skip_destroy = false -> null
+      - tags         = {} -> null
+      - tags_all     = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+        # (1 unchanged attribute hidden)
+
+      - parameter {
+          - apply_method = "pending-reboot" -> null
+          - name         = "rds.force_ssl" -> null
+          - value        = "1" -> null
+        }
+    }
+
+  # module.database.aws_db_subnet_group.this will be destroyed
+  - resource "aws_db_subnet_group" "this" {
+      - arn                     = "arn:aws:rds:us-east-1:<account>:subgrp:larkspur-smoke" -> null
+      - description             = "Managed by Terraform" -> null
+      - id                      = "larkspur-smoke" -> null
+      - name                    = "larkspur-smoke" -> null
+      - region                  = "us-east-1" -> null
+      - subnet_ids              = [
+          - "subnet-00889363fc9a3c322",
+          - "subnet-05ec84694f1cd5d78",
+          - "subnet-08d16d5c70c8574f4",
+          - "subnet-0c7bca9a85d78d8d6",
+          - "subnet-0ccf2b9e85d796148",
+          - "subnet-0d3e7c908c9c19215",
+        ] -> null
+      - supported_network_types = [
+          - "IPV4",
+        ] -> null
+      - tags                    = {} -> null
+      - tags_all                = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - vpc_id                  = "vpc-045cd26d3ce745d97" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.database.aws_security_group.this will be destroyed
+  - resource "aws_security_group" "this" {
+      - arn                    = "arn:aws:ec2:us-east-1:<account>:security-group/sg-040d0088eb4fc291c" -> null
+      - description            = "Postgres from the smoke-test laptop only" -> null
+      - egress                 = [] -> null
+      - id                     = "sg-040d0088eb4fc291c" -> null
+      - ingress                = [
+          - {
+              - cidr_blocks      = [
+                  - "<my-ip>/32",
+                ]
+              - description      = "Postgres from the smoke-test laptop"
+              - from_port        = 5432
+              - ipv6_cidr_blocks = []
+              - prefix_list_ids  = []
+              - protocol         = "tcp"
+              - security_groups  = []
+              - self             = false
+              - to_port          = 5432
+            },
+        ] -> null
+      - name                   = "larkspur-smoke-postgres" -> null
+      - owner_id               = "<account>" -> null
+      - region                 = "us-east-1" -> null
+      - revoke_rules_on_delete = false -> null
+      - tags                   = {} -> null
+      - tags_all               = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - vpc_id                 = "vpc-045cd26d3ce745d97" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.database.aws_vpc_security_group_ingress_rule.postgres will be destroyed
+  - resource "aws_vpc_security_group_ingress_rule" "postgres" {
+      - arn                    = "arn:aws:ec2:us-east-1:<account>:security-group-rule/sgr-0757ba39e3d5b6297" -> null
+      - cidr_ipv4              = "<my-ip>/32" -> null
+      - description            = "Postgres from the smoke-test laptop" -> null
+      - from_port              = 5432 -> null
+      - id                     = "sgr-0757ba39e3d5b6297" -> null
+      - ip_protocol            = "tcp" -> null
+      - region                 = "us-east-1" -> null
+      - security_group_id      = "sg-040d0088eb4fc291c" -> null
+      - security_group_rule_id = "sgr-0757ba39e3d5b6297" -> null
+      - tags_all               = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - to_port                = 5432 -> null
+    }
+
+  # module.ingest_queue.aws_sqs_queue.dlq will be destroyed
+  - resource "aws_sqs_queue" "dlq" {
+      - arn                               = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest-dlq" -> null
+      - content_based_deduplication       = false -> null
+      - delay_seconds                     = 0 -> null
+      - fifo_queue                        = false -> null
+      - id                                = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest-dlq" -> null
+      - kms_data_key_reuse_period_seconds = 300 -> null
+      - max_message_size                  = 262144 -> null
+      - message_retention_seconds         = 1209600 -> null
+      - name                              = "larkspur-smoke-ingest-dlq" -> null
+      - receive_wait_time_seconds         = 0 -> null
+      - region                            = "us-east-1" -> null
+      - sqs_managed_sse_enabled           = true -> null
+      - tags                              = {} -> null
+      - tags_all                          = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - url                               = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest-dlq" -> null
+      - visibility_timeout_seconds        = 30 -> null
+        # (7 unchanged attributes hidden)
+    }
+
+  # module.ingest_queue.aws_sqs_queue.this will be destroyed
+  - resource "aws_sqs_queue" "this" {
+      - arn                               = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest" -> null
+      - content_based_deduplication       = false -> null
+      - delay_seconds                     = 0 -> null
+      - fifo_queue                        = false -> null
+      - id                                = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest" -> null
+      - kms_data_key_reuse_period_seconds = 300 -> null
+      - max_message_size                  = 262144 -> null
+      - message_retention_seconds         = 345600 -> null
+      - name                              = "larkspur-smoke-ingest" -> null
+      - policy                            = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sqs:SendMessage"
+                      - Condition = {
+                          - ArnLike = {
+                              - "aws:SourceArn" = "arn:aws:s3:::larkspur-smoke-raw"
+                            }
+                        }
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "s3.amazonaws.com"
+                        }
+                      - Resource  = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest"
+                      - Sid       = "AllowS3EventNotifications"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - receive_wait_time_seconds         = 0 -> null
+      - redrive_policy                    = jsonencode(
+            {
+              - deadLetterTargetArn = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest-dlq"
+              - maxReceiveCount     = 5
+            }
+        ) -> null
+      - region                            = "us-east-1" -> null
+      - sqs_managed_sse_enabled           = true -> null
+      - tags                              = {} -> null
+      - tags_all                          = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - url                               = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest" -> null
+      - visibility_timeout_seconds        = 300 -> null
+        # (5 unchanged attributes hidden)
+    }
+
+  # module.ingest_queue.aws_sqs_queue_policy.this will be destroyed
+  - resource "aws_sqs_queue_policy" "this" {
+      - id        = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest" -> null
+      - policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sqs:SendMessage"
+                      - Condition = {
+                          - ArnLike = {
+                              - "aws:SourceArn" = "arn:aws:s3:::larkspur-smoke-raw"
+                            }
+                        }
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "s3.amazonaws.com"
+                        }
+                      - Resource  = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest"
+                      - Sid       = "AllowS3EventNotifications"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - queue_url = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest" -> null
+      - region    = "us-east-1" -> null
+    }
+
+  # module.lake_access.aws_iam_role.this will be destroyed
+  - resource "aws_iam_role" "this" {
+      - arn                   = "arn:aws:iam::<account>:role/larkspur-smoke-uc-lake" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Condition = {
+                          - StringEquals = {
+                              - "sts:ExternalId" = "936fc537-4357-4824-9836-4f1e9c722577"
+                            }
+                        }
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - AWS = "arn:aws:iam::414351767826:role/unity-catalog-prod-UCMasterRole-14S5ZJVKOTYTL"
+                        }
+                      - Sid       = "UnityCatalog"
+                    },
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Condition = {
+                          - ArnEquals    = {
+                              - "aws:PrincipalArn" = "arn:aws:iam::<account>:role/larkspur-smoke-uc-lake"
+                            }
+                          - StringEquals = {
+                              - "sts:ExternalId" = "936fc537-4357-4824-9836-4f1e9c722577"
+                            }
+                        }
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - AWS = "arn:aws:iam::<account>:root"
+                        }
+                      - Sid       = "SelfAssume"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-10-08T05:02:15Z" -> null
+      - force_detach_policies = false -> null
+      - id                    = "larkspur-smoke-uc-lake" -> null
+      - managed_policy_arns   = [] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "larkspur-smoke-uc-lake" -> null
+      - path                  = "/" -> null
+      - tags                  = {} -> null
+      - tags_all              = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - unique_id             = "AROARVGPK6JSXZLEKARFA" -> null
+        # (3 unchanged attributes hidden)
+
+      - inline_policy {
+          - name   = "larkspur-smoke-uc-lake" -> null
+          - policy = jsonencode(
+                {
+                  - Statement = [
+                      - {
+                          - Action   = [
+                              - "s3:PutObject",
+                              - "s3:GetObjectVersion",
+                              - "s3:GetObject",
+                              - "s3:DeleteObject",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:s3:::larkspur-smoke-lake/*"
+                          - Sid      = "ReadWriteObjects"
+                        },
+                      - {
+                          - Action   = [
+                              - "s3:ListBucket",
+                              - "s3:GetBucketLocation",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:s3:::larkspur-smoke-lake"
+                          - Sid      = "ListBuckets"
+                        },
+                      - {
+                          - Action   = "sts:AssumeRole"
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:iam::<account>:role/larkspur-smoke-uc-lake"
+                          - Sid      = "AssumeSelf"
+                        },
+                    ]
+                  - Version   = "2012-10-17"
+                }
+            ) -> null
+        }
+    }
+
+  # module.lake_access.aws_iam_role_policy.this will be destroyed
+  - resource "aws_iam_role_policy" "this" {
+      - id          = "larkspur-smoke-uc-lake:larkspur-smoke-uc-lake" -> null
+      - name        = "larkspur-smoke-uc-lake" -> null
+      - policy      = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action   = [
+                          - "s3:PutObject",
+                          - "s3:GetObjectVersion",
+                          - "s3:GetObject",
+                          - "s3:DeleteObject",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:s3:::larkspur-smoke-lake/*"
+                      - Sid      = "ReadWriteObjects"
+                    },
+                  - {
+                      - Action   = [
+                          - "s3:ListBucket",
+                          - "s3:GetBucketLocation",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:s3:::larkspur-smoke-lake"
+                      - Sid      = "ListBuckets"
+                    },
+                  - {
+                      - Action   = "sts:AssumeRole"
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:iam::<account>:role/larkspur-smoke-uc-lake"
+                      - Sid      = "AssumeSelf"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - role        = "larkspur-smoke-uc-lake" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.raw_access.aws_iam_role.this will be destroyed
+  - resource "aws_iam_role" "this" {
+      - arn                   = "arn:aws:iam::<account>:role/larkspur-smoke-uc-raw" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Condition = {
+                          - StringEquals = {
+                              - "sts:ExternalId" = "936fc537-4357-4824-9836-4f1e9c722577"
+                            }
+                        }
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - AWS = "arn:aws:iam::414351767826:role/unity-catalog-prod-UCMasterRole-14S5ZJVKOTYTL"
+                        }
+                      - Sid       = "UnityCatalog"
+                    },
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Condition = {
+                          - ArnEquals    = {
+                              - "aws:PrincipalArn" = "arn:aws:iam::<account>:role/larkspur-smoke-uc-raw"
+                            }
+                          - StringEquals = {
+                              - "sts:ExternalId" = "936fc537-4357-4824-9836-4f1e9c722577"
+                            }
+                        }
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - AWS = "arn:aws:iam::<account>:root"
+                        }
+                      - Sid       = "SelfAssume"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-10-08T05:02:14Z" -> null
+      - force_detach_policies = false -> null
+      - id                    = "larkspur-smoke-uc-raw" -> null
+      - managed_policy_arns   = [] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "larkspur-smoke-uc-raw" -> null
+      - path                  = "/" -> null
+      - tags                  = {} -> null
+      - tags_all              = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - unique_id             = "AROARVGPK6JSUGA5VNXGN" -> null
+        # (3 unchanged attributes hidden)
+
+      - inline_policy {
+          - name   = "larkspur-smoke-uc-raw" -> null
+          - policy = jsonencode(
+                {
+                  - Statement = [
+                      - {
+                          - Action   = [
+                              - "s3:GetObjectVersion",
+                              - "s3:GetObject",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:s3:::larkspur-smoke-raw/*"
+                          - Sid      = "ReadObjects"
+                        },
+                      - {
+                          - Action   = [
+                              - "s3:ListBucket",
+                              - "s3:GetBucketLocation",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:s3:::larkspur-smoke-raw"
+                          - Sid      = "ListBuckets"
+                        },
+                      - {
+                          - Action   = "sts:AssumeRole"
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:iam::<account>:role/larkspur-smoke-uc-raw"
+                          - Sid      = "AssumeSelf"
+                        },
+                    ]
+                  - Version   = "2012-10-17"
+                }
+            ) -> null
+        }
+    }
+
+  # module.raw_access.aws_iam_role_policy.this will be destroyed
+  - resource "aws_iam_role_policy" "this" {
+      - id          = "larkspur-smoke-uc-raw:larkspur-smoke-uc-raw" -> null
+      - name        = "larkspur-smoke-uc-raw" -> null
+      - policy      = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action   = [
+                          - "s3:GetObjectVersion",
+                          - "s3:GetObject",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:s3:::larkspur-smoke-raw/*"
+                      - Sid      = "ReadObjects"
+                    },
+                  - {
+                      - Action   = [
+                          - "s3:ListBucket",
+                          - "s3:GetBucketLocation",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:s3:::larkspur-smoke-raw"
+                      - Sid      = "ListBuckets"
+                    },
+                  - {
+                      - Action   = "sts:AssumeRole"
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:iam::<account>:role/larkspur-smoke-uc-raw"
+                      - Sid      = "AssumeSelf"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - role        = "larkspur-smoke-uc-raw" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.register_lambda.aws_cloudwatch_log_group.this will be destroyed
+  - resource "aws_cloudwatch_log_group" "this" {
+      - arn                         = "arn:aws:logs:us-east-1:<account>:log-group:/aws/lambda/larkspur-smoke-register" -> null
+      - deletion_protection_enabled = false -> null
+      - id                          = "/aws/lambda/larkspur-smoke-register" -> null
+      - log_group_class             = "STANDARD" -> null
+      - name                        = "/aws/lambda/larkspur-smoke-register" -> null
+      - region                      = "us-east-1" -> null
+      - retention_in_days           = 14 -> null
+      - skip_destroy                = false -> null
+      - tags                        = {} -> null
+      - tags_all                    = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+        # (2 unchanged attributes hidden)
+    }
+
+  # module.register_lambda.aws_iam_role.this will be destroyed
+  - resource "aws_iam_role" "this" {
+      - arn                   = "arn:aws:iam::<account>:role/larkspur-smoke-register" -> null
+      - assume_role_policy    = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action    = "sts:AssumeRole"
+                      - Effect    = "Allow"
+                      - Principal = {
+                          - Service = "lambda.amazonaws.com"
+                        }
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - create_date           = "2026-10-08T05:02:13Z" -> null
+      - force_detach_policies = false -> null
+      - id                    = "larkspur-smoke-register" -> null
+      - managed_policy_arns   = [] -> null
+      - max_session_duration  = 3600 -> null
+      - name                  = "larkspur-smoke-register" -> null
+      - path                  = "/" -> null
+      - tags                  = {} -> null
+      - tags_all              = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - unique_id             = "AROARVGPK6JSWC3R62AW2" -> null
+        # (3 unchanged attributes hidden)
+
+      - inline_policy {
+          - name   = "larkspur-smoke-register" -> null
+          - policy = jsonencode(
+                {
+                  - Statement = [
+                      - {
+                          - Action   = [
+                              - "s3:GetObjectVersion",
+                              - "s3:GetObject",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:s3:::larkspur-smoke-raw/*"
+                          - Sid      = "ReadRawObjects"
+                        },
+                      - {
+                          - Action   = "s3:PutObject"
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:s3:::larkspur-smoke-lake/manifests/*"
+                          - Sid      = "WriteManifests"
+                        },
+                      - {
+                          - Action   = [
+                              - "sqs:ReceiveMessage",
+                              - "sqs:GetQueueAttributes",
+                              - "sqs:DeleteMessage",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest"
+                          - Sid      = "ConsumeIngestQueue"
+                        },
+                      - {
+                          - Action   = [
+                              - "logs:PutLogEvents",
+                              - "logs:CreateLogStream",
+                            ]
+                          - Effect   = "Allow"
+                          - Resource = "arn:aws:logs:us-east-1:<account>:log-group:/aws/lambda/larkspur-smoke-register:*"
+                          - Sid      = "WriteLogs"
+                        },
+                    ]
+                  - Version   = "2012-10-17"
+                }
+            ) -> null
+        }
+    }
+
+  # module.register_lambda.aws_iam_role_policy.this will be destroyed
+  - resource "aws_iam_role_policy" "this" {
+      - id          = "larkspur-smoke-register:larkspur-smoke-register" -> null
+      - name        = "larkspur-smoke-register" -> null
+      - policy      = jsonencode(
+            {
+              - Statement = [
+                  - {
+                      - Action   = [
+                          - "s3:GetObjectVersion",
+                          - "s3:GetObject",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:s3:::larkspur-smoke-raw/*"
+                      - Sid      = "ReadRawObjects"
+                    },
+                  - {
+                      - Action   = "s3:PutObject"
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:s3:::larkspur-smoke-lake/manifests/*"
+                      - Sid      = "WriteManifests"
+                    },
+                  - {
+                      - Action   = [
+                          - "sqs:ReceiveMessage",
+                          - "sqs:GetQueueAttributes",
+                          - "sqs:DeleteMessage",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest"
+                      - Sid      = "ConsumeIngestQueue"
+                    },
+                  - {
+                      - Action   = [
+                          - "logs:PutLogEvents",
+                          - "logs:CreateLogStream",
+                        ]
+                      - Effect   = "Allow"
+                      - Resource = "arn:aws:logs:us-east-1:<account>:log-group:/aws/lambda/larkspur-smoke-register:*"
+                      - Sid      = "WriteLogs"
+                    },
+                ]
+              - Version   = "2012-10-17"
+            }
+        ) -> null
+      - role        = "larkspur-smoke-register" -> null
+        # (1 unchanged attribute hidden)
+    }
+
+  # module.register_lambda.aws_lambda_event_source_mapping.queue will be destroyed
+  - resource "aws_lambda_event_source_mapping" "queue" {
+      - arn                                = "arn:aws:lambda:us-east-1:<account>:event-source-mapping:5ba23ba2-22fb-4e97-a21d-8be152f6bd97" -> null
+      - batch_size                         = 10 -> null
+      - bisect_batch_on_function_error     = false -> null
+      - enabled                            = true -> null
+      - event_source_arn                   = "arn:aws:sqs:us-east-1:<account>:larkspur-smoke-ingest" -> null
+      - function_arn                       = "arn:aws:lambda:us-east-1:<account>:function:larkspur-smoke-register" -> null
+      - function_name                      = "arn:aws:lambda:us-east-1:<account>:function:larkspur-smoke-register" -> null
+      - function_response_types            = [
+          - "ReportBatchItemFailures",
+        ] -> null
+      - id                                 = "5ba23ba2-22fb-4e97-a21d-8be152f6bd97" -> null
+      - last_modified                      = "2026-10-08T05:03:20Z" -> null
+      - maximum_batching_window_in_seconds = 0 -> null
+      - maximum_record_age_in_seconds      = 0 -> null
+      - maximum_retry_attempts             = 0 -> null
+      - parallelization_factor             = 0 -> null
+      - queues                             = [] -> null
+      - region                             = "us-east-1" -> null
+      - state                              = "Enabled" -> null
+      - state_transition_reason            = "USER_INITIATED" -> null
+      - tags                               = {} -> null
+      - tags_all                           = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - topics                             = [] -> null
+      - tumbling_window_in_seconds         = 0 -> null
+      - uuid                               = "5ba23ba2-22fb-4e97-a21d-8be152f6bd97" -> null
+        # (4 unchanged attributes hidden)
+
+      - scaling_config {
+          - maximum_concurrency = 2 -> null
+        }
+    }
+
+  # module.register_lambda.aws_lambda_function.this will be destroyed
+  - resource "aws_lambda_function" "this" {
+      - architectures                  = [
+          - "x86_64",
+        ] -> null
+      - arn                            = "arn:aws:lambda:us-east-1:<account>:function:larkspur-smoke-register" -> null
+      - code_sha256                    = "VKkwLmF6L4K9Ik+FalBKkUw21IK1PyW2S83OcY72mjo=" -> null
+      - filename                       = "./.build/larkspur-smoke-register.zip" -> null
+      - function_name                  = "larkspur-smoke-register" -> null
+      - handler                        = "handler.handler" -> null
+      - id                             = "larkspur-smoke-register" -> null
+      - invoke_arn                     = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:<account>:function:larkspur-smoke-register/invocations" -> null
+      - last_modified                  = "2026-10-08T05:03:12.486+0000" -> null
+      - layers                         = [] -> null
+      - memory_size                    = 256 -> null
+      - package_type                   = "Zip" -> null
+      - publish                        = false -> null
+      - qualified_arn                  = "arn:aws:lambda:us-east-1:<account>:function:larkspur-smoke-register:$LATEST" -> null
+      - qualified_invoke_arn           = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:<account>:function:larkspur-smoke-register:$LATEST/invocations" -> null
+      - region                         = "us-east-1" -> null
+      - reserved_concurrent_executions = -1 -> null
+      - response_streaming_invoke_arn  = "arn:aws:apigateway:us-east-1:lambda:path/2021-11-15/functions/arn:aws:lambda:us-east-1:<account>:function:larkspur-smoke-register/response-streaming-invocations" -> null
+      - role                           = "arn:aws:iam::<account>:role/larkspur-smoke-register" -> null
+      - runtime                        = "python3.12" -> null
+      - skip_destroy                   = false -> null
+      - source_code_hash               = "VKkwLmF6L4K9Ik+FalBKkUw21IK1PyW2S83OcY72mjo=" -> null
+      - source_code_size               = 3601 -> null
+      - tags                           = {} -> null
+      - tags_all                       = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+      - timeout                        = 30 -> null
+      - version                        = "$LATEST" -> null
+        # (7 unchanged attributes hidden)
+
+      - environment {
+          - variables = {
+              - "LAKE_BUCKET"     = "larkspur-smoke-lake"
+              - "MANIFEST_PREFIX" = "manifests"
+            } -> null
+        }
+
+      - ephemeral_storage {
+          - size = 512 -> null
+        }
+
+      - logging_config {
+          - log_format            = "Text" -> null
+          - log_group             = "/aws/lambda/larkspur-smoke-register" -> null
+            # (2 unchanged attributes hidden)
+        }
+
+      - tracing_config {
+          - mode = "PassThrough" -> null
+        }
+    }
+
+  # module.secrets.aws_secretsmanager_secret.llm will be destroyed
+  - resource "aws_secretsmanager_secret" "llm" {
+      - arn                            = "arn:aws:secretsmanager:us-east-1:<account>:secret:larkspur-smoke/llm-exLuNi" -> null
+      - description                    = "LLM provider credentials/config for the query service" -> null
+      - force_overwrite_replica_secret = false -> null
+      - id                             = "arn:aws:secretsmanager:us-east-1:<account>:secret:larkspur-smoke/llm-exLuNi" -> null
+      - name                           = "larkspur-smoke/llm" -> null
+      - recovery_window_in_days        = 0 -> null
+      - region                         = "us-east-1" -> null
+      - tags                           = {} -> null
+      - tags_all                       = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+        # (4 unchanged attributes hidden)
+    }
+
+  # module.storage.aws_s3_bucket.this["lake"] will be destroyed
+  - resource "aws_s3_bucket" "this" {
+      - arn                         = "arn:aws:s3:::larkspur-smoke-lake" -> null
+      - bucket                      = "larkspur-smoke-lake" -> null
+      - bucket_domain_name          = "larkspur-smoke-lake.s3.amazonaws.com" -> null
+      - bucket_namespace            = "global" -> null
+      - bucket_region               = "us-east-1" -> null
+      - bucket_regional_domain_name = "larkspur-smoke-lake.s3.us-east-1.amazonaws.com" -> null
+      - force_destroy               = true -> null
+      - hosted_zone_id              = "Z3AQBSTGFYJSTF" -> null
+      - id                          = "larkspur-smoke-lake" -> null
+      - object_lock_enabled         = false -> null
+      - region                      = "us-east-1" -> null
+      - request_payer               = "BucketOwner" -> null
+      - tags                        = {} -> null
+      - tags_all                    = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+        # (3 unchanged attributes hidden)
+
+      - grant {
+          - id          = "c130b6965ca6e60fd733500efd3258954a668c9123f2f2eff35f4846feb3e699" -> null
+          - permissions = [
+              - "FULL_CONTROL",
+            ] -> null
+          - type        = "CanonicalUser" -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      - lifecycle_rule {
+          - abort_incomplete_multipart_upload_days = 1 -> null
+          - enabled                                = true -> null
+          - id                                     = "expire-noncurrent-versions" -> null
+          - tags                                   = {} -> null
+            # (1 unchanged attribute hidden)
+
+          - noncurrent_version_expiration {
+              - days = 7 -> null
+            }
+        }
+
+      - server_side_encryption_configuration {
+          - rule {
+              - bucket_key_enabled = false -> null
+
+              - apply_server_side_encryption_by_default {
+                  - sse_algorithm     = "AES256" -> null
+                    # (1 unchanged attribute hidden)
+                }
+            }
+        }
+
+      - versioning {
+          - enabled    = true -> null
+          - mfa_delete = false -> null
+        }
+    }
+
+  # module.storage.aws_s3_bucket.this["raw"] will be destroyed
+  - resource "aws_s3_bucket" "this" {
+      - arn                         = "arn:aws:s3:::larkspur-smoke-raw" -> null
+      - bucket                      = "larkspur-smoke-raw" -> null
+      - bucket_domain_name          = "larkspur-smoke-raw.s3.amazonaws.com" -> null
+      - bucket_namespace            = "global" -> null
+      - bucket_region               = "us-east-1" -> null
+      - bucket_regional_domain_name = "larkspur-smoke-raw.s3.us-east-1.amazonaws.com" -> null
+      - force_destroy               = true -> null
+      - hosted_zone_id              = "Z3AQBSTGFYJSTF" -> null
+      - id                          = "larkspur-smoke-raw" -> null
+      - object_lock_enabled         = false -> null
+      - region                      = "us-east-1" -> null
+      - request_payer               = "BucketOwner" -> null
+      - tags                        = {} -> null
+      - tags_all                    = {
+          - "env"        = "smoke"
+          - "managed_by" = "terraform"
+          - "project"    = "lakehouse-rag"
+        } -> null
+        # (3 unchanged attributes hidden)
+
+      - grant {
+          - id          = "c130b6965ca6e60fd733500efd3258954a668c9123f2f2eff35f4846feb3e699" -> null
+          - permissions = [
+              - "FULL_CONTROL",
+            ] -> null
+          - type        = "CanonicalUser" -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      - lifecycle_rule {
+          - abort_incomplete_multipart_upload_days = 1 -> null
+          - enabled                                = true -> null
+          - id                                     = "expire-noncurrent-versions" -> null
+          - tags                                   = {} -> null
+            # (1 unchanged attribute hidden)
+
+          - noncurrent_version_expiration {
+              - days = 7 -> null
+            }
+        }
+
+      - server_side_encryption_configuration {
+          - rule {
+              - bucket_key_enabled = false -> null
+
+              - apply_server_side_encryption_by_default {
+                  - sse_algorithm     = "AES256" -> null
+                    # (1 unchanged attribute hidden)
+                }
+            }
+        }
+
+      - versioning {
+          - enabled    = true -> null
+          - mfa_delete = false -> null
+        }
+    }
+
+  # module.storage.aws_s3_bucket_lifecycle_configuration.this["lake"] will be destroyed
+  - resource "aws_s3_bucket_lifecycle_configuration" "this" {
+      - bucket                                 = "larkspur-smoke-lake" -> null
+      - id                                     = "larkspur-smoke-lake" -> null
+      - region                                 = "us-east-1" -> null
+      - transition_default_minimum_object_size = "all_storage_classes_128K" -> null
+        # (1 unchanged attribute hidden)
+
+      - rule {
+          - id     = "expire-noncurrent-versions" -> null
+          - status = "Enabled" -> null
+            # (1 unchanged attribute hidden)
+
+          - abort_incomplete_multipart_upload {
+              - days_after_initiation = 1 -> null
+            }
+
+          - filter {
+                # (1 unchanged attribute hidden)
+            }
+
+          - noncurrent_version_expiration {
+              - noncurrent_days = 7 -> null
+            }
+        }
+    }
+
+  # module.storage.aws_s3_bucket_lifecycle_configuration.this["raw"] will be destroyed
+  - resource "aws_s3_bucket_lifecycle_configuration" "this" {
+      - bucket                                 = "larkspur-smoke-raw" -> null
+      - id                                     = "larkspur-smoke-raw" -> null
+      - region                                 = "us-east-1" -> null
+      - transition_default_minimum_object_size = "all_storage_classes_128K" -> null
+        # (1 unchanged attribute hidden)
+
+      - rule {
+          - id     = "expire-noncurrent-versions" -> null
+          - status = "Enabled" -> null
+            # (1 unchanged attribute hidden)
+
+          - abort_incomplete_multipart_upload {
+              - days_after_initiation = 1 -> null
+            }
+
+          - filter {
+                # (1 unchanged attribute hidden)
+            }
+
+          - noncurrent_version_expiration {
+              - noncurrent_days = 7 -> null
+            }
+        }
+    }
+
+  # module.storage.aws_s3_bucket_public_access_block.this["lake"] will be destroyed
+  - resource "aws_s3_bucket_public_access_block" "this" {
+      - block_public_acls       = true -> null
+      - block_public_policy     = true -> null
+      - bucket                  = "larkspur-smoke-lake" -> null
+      - id                      = "larkspur-smoke-lake" -> null
+      - ignore_public_acls      = true -> null
+      - region                  = "us-east-1" -> null
+      - restrict_public_buckets = true -> null
+    }
+
+  # module.storage.aws_s3_bucket_public_access_block.this["raw"] will be destroyed
+  - resource "aws_s3_bucket_public_access_block" "this" {
+      - block_public_acls       = true -> null
+      - block_public_policy     = true -> null
+      - bucket                  = "larkspur-smoke-raw" -> null
+      - id                      = "larkspur-smoke-raw" -> null
+      - ignore_public_acls      = true -> null
+      - region                  = "us-east-1" -> null
+      - restrict_public_buckets = true -> null
+    }
+
+  # module.storage.aws_s3_bucket_server_side_encryption_configuration.this["lake"] will be destroyed
+  - resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+      - bucket                = "larkspur-smoke-lake" -> null
+      - id                    = "larkspur-smoke-lake" -> null
+      - region                = "us-east-1" -> null
+        # (1 unchanged attribute hidden)
+
+      - rule {
+          - blocked_encryption_types = [
+              - "SSE-C",
+            ] -> null
+          - bucket_key_enabled       = false -> null
+
+          - apply_server_side_encryption_by_default {
+              - sse_algorithm     = "AES256" -> null
+                # (1 unchanged attribute hidden)
+            }
+        }
+    }
+
+  # module.storage.aws_s3_bucket_server_side_encryption_configuration.this["raw"] will be destroyed
+  - resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
+      - bucket                = "larkspur-smoke-raw" -> null
+      - id                    = "larkspur-smoke-raw" -> null
+      - region                = "us-east-1" -> null
+        # (1 unchanged attribute hidden)
+
+      - rule {
+          - blocked_encryption_types = [
+              - "SSE-C",
+            ] -> null
+          - bucket_key_enabled       = false -> null
+
+          - apply_server_side_encryption_by_default {
+              - sse_algorithm     = "AES256" -> null
+                # (1 unchanged attribute hidden)
+            }
+        }
+    }
+
+  # module.storage.aws_s3_bucket_versioning.this["lake"] will be destroyed
+  - resource "aws_s3_bucket_versioning" "this" {
+      - bucket                = "larkspur-smoke-lake" -> null
+      - id                    = "larkspur-smoke-lake" -> null
+      - region                = "us-east-1" -> null
+        # (1 unchanged attribute hidden)
+
+      - versioning_configuration {
+          - mfa_delete = "Disabled" -> null
+          - status     = "Enabled" -> null
+        }
+    }
+
+  # module.storage.aws_s3_bucket_versioning.this["raw"] will be destroyed
+  - resource "aws_s3_bucket_versioning" "this" {
+      - bucket                = "larkspur-smoke-raw" -> null
+      - id                    = "larkspur-smoke-raw" -> null
+      - region                = "us-east-1" -> null
+        # (1 unchanged attribute hidden)
+
+      - versioning_configuration {
+          - mfa_delete = "Disabled" -> null
+          - status     = "Enabled" -> null
+        }
+    }
+
+Plan: 0 to add, 0 to change, 30 to destroy.
+
+Changes to Outputs:
+  - db_host                = "<rds-host>" -> null
+  - db_master_secret_arn   = "arn:aws:secretsmanager:us-east-1:<account>:secret:rds!db-4c46fcc9-2cec-423a-9e64-74d5274a2b42-Vybkq9" -> null
+  - db_name                = "rag" -> null
+  - db_port                = 5432 -> null
+  - db_username            = "rag_admin" -> null
+  - ingest_dlq_url         = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest-dlq" -> null
+  - ingest_queue_url       = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest" -> null
+  - lake_bucket            = "larkspur-smoke-lake" -> null
+  - llm_secret_arn         = "arn:aws:secretsmanager:us-east-1:<account>:secret:larkspur-smoke/llm-exLuNi" -> null
+  - raw_bucket             = "larkspur-smoke-raw" -> null
+  - register_function_name = "larkspur-smoke-register" -> null
+  - uc_lake_role_arn       = "arn:aws:iam::<account>:role/larkspur-smoke-uc-lake" -> null
+  - uc_raw_role_arn        = "arn:aws:iam::<account>:role/larkspur-smoke-uc-raw" -> null
+module.lake_access.aws_iam_role_policy.this: Destroying... [id=larkspur-smoke-uc-lake:larkspur-smoke-uc-lake]
+module.register_lambda.aws_lambda_event_source_mapping.queue: Destroying... [id=5ba23ba2-22fb-4e97-a21d-8be152f6bd97]
+aws_s3_bucket_notification.raw_to_ingest: Destroying... [id=larkspur-smoke-raw]
+module.secrets.aws_secretsmanager_secret.llm: Destroying... [id=arn:aws:secretsmanager:us-east-1:<account>:secret:larkspur-smoke/llm-exLuNi]
+module.raw_access.aws_iam_role_policy.this: Destroying... [id=larkspur-smoke-uc-raw:larkspur-smoke-uc-raw]
+module.database.aws_vpc_security_group_ingress_rule.postgres: Destroying... [id=sgr-0757ba39e3d5b6297]
+module.storage.aws_s3_bucket_server_side_encryption_configuration.this["lake"]: Destroying... [id=larkspur-smoke-lake]
+module.storage.aws_s3_bucket_lifecycle_configuration.this["lake"]: Destroying... [id=larkspur-smoke-lake]
+module.storage.aws_s3_bucket_versioning.this["raw"]: Destroying... [id=larkspur-smoke-raw]
+module.storage.aws_s3_bucket_lifecycle_configuration.this["raw"]: Destroying... [id=larkspur-smoke-raw]
+module.storage.aws_s3_bucket_server_side_encryption_configuration.this["lake"]: Destruction complete after 2s
+module.storage.aws_s3_bucket_versioning.this["lake"]: Destroying... [id=larkspur-smoke-lake]
+module.lake_access.aws_iam_role_policy.this: Destruction complete after 2s
+module.storage.aws_s3_bucket_public_access_block.this["lake"]: Destroying... [id=larkspur-smoke-lake]
+module.raw_access.aws_iam_role_policy.this: Destruction complete after 2s
+module.database.aws_db_instance.this: Destroying... [id=db-S5NY3FMUFQHE5N6G2GWRLJBD5A]
+aws_s3_bucket_notification.raw_to_ingest: Destruction complete after 2s
+module.storage.aws_s3_bucket_public_access_block.this["raw"]: Destroying... [id=larkspur-smoke-raw]
+module.secrets.aws_secretsmanager_secret.llm: Destruction complete after 2s
+module.storage.aws_s3_bucket_lifecycle_configuration.this["raw"]: Destruction complete after 2s
+module.storage.aws_s3_bucket_lifecycle_configuration.this["lake"]: Destruction complete after 2s
+aws_budgets_budget.smoke: Destroying... [id=<account>:larkspur-smoke-monthly]
+module.storage.aws_s3_bucket_server_side_encryption_configuration.this["raw"]: Destroying... [id=larkspur-smoke-raw]
+module.lake_access.aws_iam_role.this: Destroying... [id=larkspur-smoke-uc-lake]
+module.database.aws_vpc_security_group_ingress_rule.postgres: Destruction complete after 2s
+module.storage.aws_s3_bucket_versioning.this["lake"]: Destruction complete after 0s
+module.raw_access.aws_iam_role.this: Destroying... [id=larkspur-smoke-uc-raw]
+module.ingest_queue.aws_sqs_queue_policy.this: Destroying... [id=https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest]
+module.storage.aws_s3_bucket_server_side_encryption_configuration.this["raw"]: Destruction complete after 1s
+module.storage.aws_s3_bucket_public_access_block.this["raw"]: Destruction complete after 1s
+module.storage.aws_s3_bucket_public_access_block.this["lake"]: Destruction complete after 1s
+module.lake_access.aws_iam_role.this: Destruction complete after 1s
+module.raw_access.aws_iam_role.this: Destruction complete after 1s
+aws_budgets_budget.smoke: Destruction complete after 1s
+module.storage.aws_s3_bucket_versioning.this["raw"]: Destruction complete after 3s
+module.register_lambda.aws_lambda_event_source_mapping.queue: Destruction complete after 19s
+module.register_lambda.aws_lambda_function.this: Destroying... [id=larkspur-smoke-register]
+module.register_lambda.aws_lambda_function.this: Destruction complete after 6s
+module.register_lambda.aws_iam_role_policy.this: Destroying... [id=larkspur-smoke-register:larkspur-smoke-register]
+module.register_lambda.aws_iam_role_policy.this: Destruction complete after 0s
+module.register_lambda.aws_cloudwatch_log_group.this: Destroying... [id=/aws/lambda/larkspur-smoke-register]
+module.register_lambda.aws_iam_role.this: Destroying... [id=larkspur-smoke-register]
+module.register_lambda.aws_iam_role.this: Destruction complete after 2s
+module.register_lambda.aws_cloudwatch_log_group.this: Destruction complete after 2s
+module.ingest_queue.aws_sqs_queue_policy.this: Destruction complete after 29s
+module.storage.aws_s3_bucket.this["lake"]: Destroying... [id=larkspur-smoke-lake]
+module.ingest_queue.aws_sqs_queue.this: Destroying... [id=https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest]
+module.storage.aws_s3_bucket.this["raw"]: Destroying... [id=larkspur-smoke-raw]
+module.storage.aws_s3_bucket.this["raw"]: Destruction complete after 5s
+module.storage.aws_s3_bucket.this["lake"]: Destruction complete after 7s
+module.ingest_queue.aws_sqs_queue.this: Destruction complete after 47s
+module.ingest_queue.aws_sqs_queue.dlq: Destroying... [id=https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest-dlq]
+module.database.aws_db_instance.this: Destruction complete after 1m56s
+module.database.aws_db_parameter_group.this: Destroying... [id=larkspur-smoke]
+module.database.aws_db_subnet_group.this: Destroying... [id=larkspur-smoke]
+module.database.aws_security_group.this: Destroying... [id=sg-040d0088eb4fc291c]
+module.database.aws_db_parameter_group.this: Destruction complete after 0s
+module.database.aws_db_subnet_group.this: Destruction complete after 1s
+module.database.aws_security_group.this: Destruction complete after 2s
+module.ingest_queue.aws_sqs_queue.dlq: Destruction complete after 47s
+
+Destroy complete! Resources: 30 destroyed.

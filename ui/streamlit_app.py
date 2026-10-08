@@ -24,11 +24,13 @@ from app.tokens import PERSONAS
 API_URL = os.environ.get("RAG_API_URL", "http://localhost:8000")
 TIMEOUT = httpx.Timeout(60.0, connect=5.0)
 
+# Each is a golden-set question, so the demo shows behaviour the evaluation has checked.
 EXAMPLES = [
     "What is the nightly hotel cap for domestic travel?",
     "How many shipments were late last month?",
-    "What are the salary bands for a senior engineer?",
-    "What is Northwind Grocers' SLA, and how many late shipments did they have last month?",
+    "What is the base salary range for pay band L7?",
+    "How many invoices are overdue, and how overdue must one be for the account to go on "
+    "credit hold?",
 ]
 
 
@@ -49,7 +51,8 @@ def render(body: dict[str, object]) -> None:
         st.warning(str(body.get("answer", "")))
         st.caption(f"reason: {body.get('refusal_reason')}")
     else:
-        st.markdown(str(body.get("answer", "")))
+        # Streamlit renders $...$ as LaTeX, which swallows a range like "$230,000 to $320,000".
+        st.markdown(str(body.get("answer", "")).replace("$", r"\$"))
 
     citations = body.get("citations") or []
     if isinstance(citations, list) and citations:

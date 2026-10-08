@@ -1,0 +1,80 @@
+{
+  "job_name": "[smoke] lakehouse-rag ingest",
+  "run_id": 756083809810507,
+  "state": {
+    "life_cycle_state": "TERMINATED",
+    "result_state": "SUCCESS",
+    "state_message": "",
+    "user_cancelled_or_timedout": false
+  },
+  "status": {
+    "state": "TERMINATED",
+    "termination_details": {
+      "code": "SUCCESS",
+      "message": "",
+      "type": "SUCCESS"
+    }
+  },
+  "started": "2026-10-08T06:07:27.955000+00:00",
+  "ended": "2026-10-08T06:10:17.666000+00:00",
+  "run_duration_s": 169.711,
+  "tasks": [
+    {
+      "task_key": "silver",
+      "state": {
+        "life_cycle_state": "TERMINATED",
+        "result_state": "SUCCESS",
+        "state_message": "",
+        "user_cancelled_or_timedout": false
+      },
+      "status": {
+        "state": "TERMINATED",
+        "termination_details": {
+          "code": "SUCCESS",
+          "message": "",
+          "type": "SUCCESS"
+        }
+      },
+      "run_duration_s": 50.492,
+      "environment_key": "ingest"
+    },
+    {
+      "task_key": "bronze",
+      "state": {
+        "life_cycle_state": "TERMINATED",
+        "result_state": "SUCCESS",
+        "state_message": "",
+        "user_cancelled_or_timedout": false
+      },
+      "status": {
+        "state": "TERMINATED",
+        "termination_details": {
+          "code": "SUCCESS",
+          "message": "",
+          "type": "SUCCESS"
+        }
+      },
+      "run_duration_s": 72.435,
+      "environment_key": "ingest"
+    },
+    {
+      "task_key": "gold",
+      "state": {
+        "life_cycle_state": "TERMINATED",
+        "result_state": "SUCCESS",
+        "state_message": "",
+        "user_cancelled_or_timedout": false
+      },
+      "status": {
+        "state": "TERMINATED",
+        "termination_details": {
+          "code": "SUCCESS",
+          "message": "",
+          "type": "SUCCESS"
+        }
+      },
+      "run_duration_s": 45.453,
+      "environment_key": "ingest"
+    }
+  ]
+}

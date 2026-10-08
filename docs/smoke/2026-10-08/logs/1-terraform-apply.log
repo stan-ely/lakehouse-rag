@@ -1,0 +1,42 @@
+module.database.aws_vpc_security_group_ingress_rule.postgres: Creation complete after 0s [id=sgr-0757ba39e3d5b6297]
+module.storage.aws_s3_bucket.this["raw"]: Creation complete after 7s [id=larkspur-smoke-raw]
+module.storage.aws_s3_bucket.this["lake"]: Creation complete after 7s [id=larkspur-smoke-lake]
+module.raw_access.aws_iam_role_policy.this: Creation complete after 1s [id=larkspur-smoke-uc-raw:larkspur-smoke-uc-raw]
+module.storage.aws_s3_bucket_server_side_encryption_configuration.this["raw"]: Creation complete after 1s [id=larkspur-smoke-raw]
+module.storage.aws_s3_bucket_public_access_block.this["lake"]: Creation complete after 1s [id=larkspur-smoke-lake]
+module.storage.aws_s3_bucket_public_access_block.this["raw"]: Creation complete after 1s [id=larkspur-smoke-raw]
+module.storage.aws_s3_bucket_server_side_encryption_configuration.this["lake"]: Creation complete after 2s [id=larkspur-smoke-lake]
+module.lake_access.aws_iam_role_policy.this: Creation complete after 1s [id=larkspur-smoke-uc-lake:larkspur-smoke-uc-lake]
+module.storage.aws_s3_bucket_versioning.this["lake"]: Creation complete after 3s [id=larkspur-smoke-lake]
+module.storage.aws_s3_bucket_versioning.this["raw"]: Creation complete after 2s [id=larkspur-smoke-raw]
+aws_budgets_budget.smoke: Creation complete after 11s [id=<account>:larkspur-smoke-monthly]
+module.ingest_queue.aws_sqs_queue.dlq: Creation complete after 29s [id=https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest-dlq]
+module.ingest_queue.aws_sqs_queue.this: Creation complete after 28s [id=https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest]
+module.register_lambda.aws_iam_role_policy.this: Creation complete after 1s [id=larkspur-smoke-register:larkspur-smoke-register]
+module.register_lambda.aws_lambda_function.this: Creation complete after 8s [id=larkspur-smoke-register]
+module.storage.aws_s3_bucket_lifecycle_configuration.this["raw"]: Creation complete after 1m0s [id=larkspur-smoke-raw]
+module.storage.aws_s3_bucket_lifecycle_configuration.this["lake"]: Creation complete after 1m2s [id=larkspur-smoke-lake]
+module.ingest_queue.aws_sqs_queue_policy.this: Creation complete after 27s [id=https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest]
+aws_s3_bucket_notification.raw_to_ingest: Creation complete after 2s [id=larkspur-smoke-raw]
+module.register_lambda.aws_lambda_event_source_mapping.queue: Creation complete after 29s [id=5ba23ba2-22fb-4e97-a21d-8be152f6bd97]
+module.database.aws_db_instance.this: Creation complete after 7m1s [id=db-S5NY3FMUFQHE5N6G2GWRLJBD5A]
+
+Apply complete! Resources: 30 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+db_host = "<rds-host>"
+db_master_secret_arn = "arn:aws:secretsmanager:us-east-1:<account>:secret:rds!db-4c46fcc9-2cec-423a-9e64-74d5274a2b42-Vybkq9"
+db_name = "rag"
+db_port = 5432
+db_username = "rag_admin"
+ingest_dlq_url = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest-dlq"
+ingest_queue_url = "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest"
+lake_bucket = "larkspur-smoke-lake"
+llm_secret_arn = "arn:aws:secretsmanager:us-east-1:<account>:secret:larkspur-smoke/llm-exLuNi"
+raw_bucket = "larkspur-smoke-raw"
+register_function_name = "larkspur-smoke-register"
+uc_lake_role_arn = "arn:aws:iam::<account>:role/larkspur-smoke-uc-lake"
+uc_raw_role_arn = "arn:aws:iam::<account>:role/larkspur-smoke-uc-raw"
+
+[exited with code 0]

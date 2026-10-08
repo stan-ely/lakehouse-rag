@@ -24,8 +24,10 @@ jobs:
       - run: mise run sync
       - name: terraform validate
         run: |
-          terraform -chdir=infra/terraform/envs/local init -backend=false -input=false
-          terraform -chdir=infra/terraform/envs/local validate
+          for env in local aws; do
+            terraform -chdir=infra/terraform/envs/$env init -backend=false -input=false
+            terraform -chdir=infra/terraform/envs/$env validate
+          done
       - run: mise run lint
       - name: terraform security scan
         run: mise run scan

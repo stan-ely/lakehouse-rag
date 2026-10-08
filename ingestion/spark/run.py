@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import replace
 
 from pyspark.sql import SparkSession
+from pyspark.sql.utils import is_remote
 
 from ingestion.spark import bronze, gold, silver
 from ingestion.spark.session import build_session
@@ -26,6 +27,8 @@ def main(argv: list[str] | None = None) -> None:
     # The Databricks job passes the lake root as a parameter: a serverless task has no shell to
     # export RAG_LAKE_ROOT in, and the bundle should not depend on a cluster-level env var.
     parser.add_argument("--lake-root", help="overrides RAG_LAKE_ROOT")
+    # Databricks only: names the UC service credential bronze reads raw objects with.
+    parser.add_argument("--service-credential", help="overrides RAG_SERVICE_CREDENTIAL")
     args = parser.parse_args(argv)
     if unknown := [step for step in args.steps if step not in STEPS]:
         parser.error(f"unknown step(s): {', '.join(unknown)}; choose from {', '.join(STEPS)}")
@@ -34,13 +37,20 @@ def main(argv: list[str] | None = None) -> None:
     settings = Settings.from_env()
     if args.lake_root:
         settings = replace(settings, lake_root=args.lake_root.rstrip("/"))
+    if args.service_credential:
+        settings = replace(settings, service_credential=args.service_credential)
     spark = build_session(settings)
-    spark.sparkContext.setLogLevel("WARN")
+    # Serverless runs over Spark Connect, which has no SparkContext; the platform owns logging.
+    if not is_remote():
+        spark.sparkContext.setLogLevel("WARN")
     try:
         for step in args.steps:
             STEPS[step](spark, settings)
     finally:
-        spark.stop()
+        # On serverless the platform owns the session. Stopping it after `dbutils` has resolved
+        # a service credential never returns, and the task hangs after its work is done.
+        if not is_remote():
+            spark.stop()
 
 
 if __name__ == "__main__":

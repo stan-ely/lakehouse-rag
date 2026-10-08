@@ -16,19 +16,28 @@ variables:
       write. Not s3a://: on Databricks the path goes through the storage credential, not S3A.
     default: s3://larkspur-smoke-lake
 
-  notification_email:
-    description: Address for job failure notifications.
-    default: ""
+  service_credential:
+    description: >-
+      UC service credential bronze uses to read raw objects by version with boto3. The external
+      location covers Spark's reads of the lake; it gives boto3 nothing.
+    default: larkspur-smoke-raw
 
-# Only what the job needs is uploaded. The API, the UI, the eval harness and the generated data
-# stay out of the workspace.
+# `ingestion/` travels as a wheel (databricks/pyproject.toml) because serverless executors import
+# the mapInPandas functions by module name; files synced next to the entry script reach only the
+# driver. So only the entry script is synced; the API, UI, eval harness and data stay out.
+artifacts:
+  ingest_wheel:
+    type: whl
+    path: ./databricks
+    build: uv build --wheel --out-dir dist
+
 sync:
   paths:
-    - ingestion
     - databricks
   exclude:
     - "**/__pycache__"
     - "**/*.pyc"
+    - databricks/dist
 
 resources:
   jobs:
@@ -40,19 +49,26 @@ resources:
         enabled: true
 
       # Serverless environment 6 is Python 3.12, which is what mise pins locally, so the code
-      # runs on the interpreter it was type-checked against. delta-spark is not a dependency
-      # here: Databricks Runtime provides Delta.
+      # runs on the interpreter it was type-checked against. The wheel declares the parsers;
+      # Databricks provides Spark, Delta, boto3, pandas and pyarrow.
       environments:
         - environment_key: ingest
           spec:
             environment_version: "6"
+            dependencies:
+              - ./databricks/dist/*.whl
 
       tasks:
         - task_key: bronze
           environment_key: ingest
           spark_python_task:
             python_file: databricks/ingest_job.py
-            parameters: ["bronze", "--lake-root", "${var.lake_root}"]
+            parameters:
+              - bronze
+              - --lake-root
+              - ${var.lake_root}
+              - --service-credential
+              - ${var.service_credential}
 
         - task_key: silver
           depends_on:
@@ -79,13 +95,19 @@ targets:
     # this at their own Free Edition workspace with `databricks auth login` and nothing else.
     # With more than one profile for the same host, set DATABRICKS_CONFIG_PROFILE.
 
+  # The same-day AWS smoke test (docs/adr/0007): `eval/smoke.py` deploys and runs this target.
+  # Production mode wants one explicit copy, so the root path is pinned; on Free Edition the
+  # deploying user is the only principal there is.
   smoke:
     mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/smoke
     variables:
       lake_root: s3://larkspur-smoke-lake
+      service_credential: larkspur-smoke-raw
     resources:
       jobs:
         ingest:
           email_notifications:
             on_failure:
-              - ${var.notification_email}
+              - ${workspace.current_user.userName}

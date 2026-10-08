@@ -1,0 +1,67 @@
+2026-10-08 11:26:37,778 smoke == ingest
+2026-10-08 11:26:37,779 smoke $ databricks bundle deploy -t smoke
+Building ingest_wheel...
+Uploading databricks/dist/lakehouse_rag_ingest-0.1.0-py3-none-any.whl...
+Uploading bundle files to /Workspace/Users/<me>/.bundle/lakehouse-rag/smoke/files...
+Files: 0 uploaded, 0 deleted
+Resources: 0 created, 0 changed, 0 deleted, 1 unchanged
+2026-10-08 11:26:58,424 smoke $ databricks bundle run ingest -t smoke
+Run URL: https://<workspace>/jobs/393163152582324/runs/841576683047886?o=<org>
+
+2026-10-08 11:27:01 "[smoke] lakehouse-rag ingest" RUNNING
+2026-10-08 11:30:25 "[smoke] lakehouse-rag ingest" TERMINATED SUCCESS
+Output:
+=======
+Task bronze:
+2026-10-08 05:58:18,654 INFO ingestion.spark.bronze bronze up to date: s3://larkspur-smoke-lake/delta/bronze/objects
+
+=======
+Task silver:
+2026-10-08 05:59:31,428 INFO ingestion.spark.silver silver up to date: s3://larkspur-smoke-lake/delta/silver/documents
+
+=======
+Task gold:
+2026-10-08 06:00:18,602 INFO ingestion.spark.gold gold up to date: s3://larkspur-smoke-lake/delta/gold/chunks
+
+2026-10-08 11:30:27,969 smoke == index
+2026-10-08 11:30:27,983 smoke $ .venv\Scripts\python.exe -m ingestion.indexer.run
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "ingestion\indexer\run.py", line 100, in <module>
+    main()
+  File "ingestion\indexer\run.py", line 95, in main
+    stats = index(GoldSource.from_env(), PostgresStore(conn), FastEmbedder())
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "ingestion\indexer\run.py", line 53, in index
+    documents = group_documents(source.chunk_rows(changed, version))
+                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "ingestion\indexer\source.py", line 72, in chunk_rows
+    self._table(version).to_pyarrow_table(filters=filters).to_pylist()
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ".venv\Lib\site-packages\deltalake\table.py", line 1114, in to_pyarrow_table
+    return self.to_pyarrow_dataset(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File ".venv\Lib\site-packages\deltalake\table.py", line 1018, in to_pyarrow_dataset
+    raise DeltaProtocolError(
+_internal.DeltaProtocolError: The table has set these reader features: {'deletionVectors'} but these are not yet supported by the deltalake reader.
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "eval\smoke.py", line 309, in <module>
+    main()
+  File "eval\smoke.py", line 303, in main
+    smoke.execute(names)
+  File "eval\smoke.py", line 208, in execute
+    self.steps()[name]()
+  File "eval\smoke.py", line 163, in index
+    self.python("ingestion.indexer.run")
+  File "eval\smoke.py", line 132, in python
+    return self.run(sys.executable, "-m", module, *argv, check=check)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "eval\smoke.py", line 128, in run
+    done = subprocess.run(argv, cwd=ROOT, env=self.env, check=check)  # noqa: S603
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Bevan\AppData\Local\mise\installs\python\3.12.13\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '('C:\\Users\\Bevan\\src\\rag\\.venv\\Scripts\\python.exe', '-m', 'ingestion.indexer.run')' returned non-zero exit status 1.
