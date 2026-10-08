@@ -12,8 +12,9 @@ def _report(**metrics: float) -> dict[str, Any]:
         "generated_at": "2026-09-24T10:00:00+00:00",
         "model": smoke.MODEL,
         "cases": 121,
-        "leaks": 0,
-        "errors": 0,
+        # run_eval writes the case ids, not counts.
+        "leaks": [],
+        "errors": [],
         "metrics": metrics,
     }
 
@@ -75,3 +76,12 @@ def test_report_without_a_baseline_has_one_value_column() -> None:
 
     assert "| router_accuracy | 0.9300 |\n" in text
     assert "| Threshold gate | not run |" in text
+
+
+def test_report_counts_leaked_and_failed_cases() -> None:
+    report = _report(router_accuracy=0.93) | {"leaks": ["acl-03", "acl-07"], "errors": ["sql-12"]}
+
+    text = smoke.render(report, None, {})
+
+    assert "| ACL leaks | 2 |\n" in text
+    assert "| Errors | 1 |\n" in text
