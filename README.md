@@ -11,7 +11,9 @@ A production-grade enterprise RAG system for **Larkspur Logistics**, a fictional
 
 A router decides whether each question needs documents, SQL, or both.
 
-> Status: weeks 1–7 are done (foundation, ingestion, retrieval and generation, text-to-SQL and routing, evaluation, production hardening, CI/CD). **Week 8** is in progress: the AWS smoke environment and the Databricks Free Edition run are built and ready to run ([ADR 0007](docs/adr/0007-aws-smoke-topology.md)), and the write-up follows. The roadmap is below.
+> Status: all eight weeks are done. On 2026-10-08 the whole pipeline ran on real AWS (S3, SQS, Lambda, RDS, Bedrock) with the lake built by a Databricks Free Edition serverless job. It passed the evaluation gate with **0 ACL leaks**, and the stack was then destroyed. The [evidence](docs/smoke/2026-10-08/README.md) has screenshots, a recording, API responses and logs.
+
+![The demo on AWS: a hybrid answer combining a live SQL count with the SLA policy](docs/smoke/2026-10-08/ui/03-sales.png)
 
 ## Architecture
 
@@ -71,8 +73,29 @@ Real S3, SQS, Lambda, RDS and Bedrock, with the Databricks Free Edition job buil
 ```sh
 MISE_ENV=aws mise run tf-aws -var allowed_cidr=<your-ip>/32 -var budget_email=<you>
 MISE_ENV=aws mise run smoke           # migrate, seed, register, ingest, index, eval, report
+MISE_ENV=aws mise run evidence        # API responses, UI screenshots and recording, infra facts
 MISE_ENV=aws mise run tf-aws-destroy
 ```
+
+**Result of the 2026-10-08 run** ([report](docs/smoke/2026-10-08.md), [evidence](docs/smoke/2026-10-08/README.md)):
+
+| | AWS + Databricks | Local baseline |
+|---|---|---|
+| Lambda manifests / Databricks job | 157 of 157, 0 errors / bronze → silver → gold in 2 min 49 s | – |
+| Indexed into RDS | 156 documents, 330 chunks | – |
+| Router accuracy | 0.936 | 0.927 |
+| SQL execution success | 0.957 | 0.894 |
+| Answer correctness | 0.917 | 0.899 |
+| Recall@k (end to end) | 0.986 | 0.986 |
+| **ACL leaks** | **0** | 0 |
+| Cost per golden-set run / p50 latency | $0.014 / 3.8 s | $0.014 / 1.7 s |
+
+Latency doubles because the laptop, in India, calls RDS in us-east-1 and Bedrock in us-west-2.
+
+The run surfaced three differences between Databricks serverless and the local Spark, now fixed in the shared code (see [ADR 0007](docs/adr/0007-aws-smoke-topology.md)):
+- `dbutils` cannot authenticate inside `foreachBatch`.
+- Stopping the platform's session hangs the task.
+- Serverless enables deletion vectors, which the delta-rs indexer cannot read.
 
 A `/query` response carries:
 - the answer and its citations
@@ -139,4 +162,4 @@ No model tried leaked restricted content or answered a question the caller had n
 5. ✅ Evaluation harness and CI gate
 6. ✅ Hardening: guardrails, resilience, observability, Streamlit UI
 7. ✅ CI/CD and Databricks bundle: security scanning, bundle schema check, image publishing
-8. 🚧 AWS smoke test and Free Edition run (built, not yet run), then the write-up
+8. ✅ AWS smoke test and Databricks Free Edition run: passed on 2026-10-08, [evidence](docs/smoke/2026-10-08/README.md)

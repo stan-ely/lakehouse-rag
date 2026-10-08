@@ -1,0 +1,344 @@
+{
+  "captured_at": "2026-10-08T06:34:10.525734+00:00",
+  "queries": [
+    {
+      "persona": "exec",
+      "groups": [
+        "all-staff",
+        "exec"
+      ],
+      "question": "What is the nightly hotel cap for domestic travel?",
+      "demonstrates": "docs route, cited answer",
+      "status": 200,
+      "client_ms": 6531,
+      "response": {
+        "request_id": "6241b6beacd84d8b834581e740789c7c",
+        "answer": "The nightly hotel cap for domestic travel is $250 per night [1][3].",
+        "refused": false,
+        "refusal_reason": null,
+        "grounded": true,
+        "citations": [
+          {
+            "index": 1,
+            "title": "Travel and Expense Policy",
+            "source_uri": "s3://larkspur-smoke-raw/documents/policies/travel-and-expense-policy.pdf",
+            "doc_id": "pol-travel-expense",
+            "chunk_id": "pol-travel-expense:0003",
+            "doc_version": "9.fq03VRbU2ZZs8d5CVFfXlG1XaSD0EE"
+          },
+          {
+            "index": 3,
+            "title": "Expense Reimbursement",
+            "source_uri": "s3://larkspur-smoke-raw/wiki/general/expense-reimbursement.md",
+            "doc_id": "wiki-general-expense-reimbursement",
+            "chunk_id": "wiki-general-expense-reimbursement:0000",
+            "doc_version": "eMK08l3XrlwcvCgHWBpRoyPguD4ySGxe"
+          }
+        ],
+        "model": "us.amazon.nova-lite-v1:0",
+        "provider": "bedrock",
+        "usage": {
+          "input_tokens": 1476,
+          "output_tokens": 25,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost_usd": 9.456e-05,
+        "timings_ms": {
+          "routing": 1497.2675999160856,
+          "retrieval": 2205.888499971479,
+          "generation": 691.8803999433294
+        },
+        "route": "docs",
+        "route_method": "llm",
+        "sql": null,
+        "sql_error": null
+      }
+    },
+    {
+      "persona": "ops",
+      "groups": [
+        "all-staff",
+        "ops"
+      ],
+      "question": "How many shipments were late last month?",
+      "demonstrates": "sql route on RDS",
+      "status": 200,
+      "client_ms": 6219,
+      "response": {
+        "request_id": "d11cb46f5ada484ebd4b2137d3802cd6",
+        "answer": "There were 46 shipments that were late last month [1].",
+        "refused": false,
+        "refusal_reason": null,
+        "grounded": true,
+        "citations": [
+          {
+            "index": 1,
+            "title": "Live query: analytics.shipments",
+            "source_uri": "sql://analytics/shipments",
+            "doc_id": "sql:analytics",
+            "chunk_id": "sql:result",
+            "doc_version": "live@2026-10-08T06:33:43+00:00"
+          }
+        ],
+        "model": "us.amazon.nova-lite-v1:0",
+        "provider": "bedrock",
+        "usage": {
+          "input_tokens": 1280,
+          "output_tokens": 79,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost_usd": 9.576e-05,
+        "timings_ms": {
+          "routing": 613.939099945128,
+          "sql": 2728.7921000970528,
+          "generation": 700.3678999608383
+        },
+        "route": "sql",
+        "route_method": "llm",
+        "sql": "SELECT COUNT(*) FROM analytics.shipments WHERE is_late = TRUE AND delivered_at >= CAST('2026-07-31' AS DATE) AND delivered_at < CAST('2026-08-31' AS DATE) LIMIT 200",
+        "sql_error": null
+      }
+    },
+    {
+      "persona": "sales",
+      "groups": [
+        "all-staff",
+        "sales"
+      ],
+      "question": "Hardy Outfitters had late deliveries in August 2026. How many were there, and what late delivery credit does the policy give their tier?",
+      "demonstrates": "hybrid route: policy plus live rows",
+      "status": 200,
+      "client_ms": 9531,
+      "response": {
+        "request_id": "f880f01e8fc04624ae7206ba6de14341",
+        "answer": "Hardy Outfitters had 5 late deliveries in August 2026 [1]. Their tier is gold, which gives a late delivery credit of 10% of the shipment invoice [1][3].",
+        "refused": false,
+        "refusal_reason": null,
+        "grounded": true,
+        "citations": [
+          {
+            "index": 1,
+            "title": "Live query: analytics.customers, analytics.shipments",
+            "source_uri": "sql://analytics/customers+shipments",
+            "doc_id": "sql:analytics",
+            "chunk_id": "sql:result",
+            "doc_version": "live@2026-10-08T06:33:50+00:00"
+          },
+          {
+            "index": 3,
+            "title": "Customer Service Level Agreement Tiers",
+            "source_uri": "s3://larkspur-smoke-raw/documents/policies/customer-service-level-agreement-tiers.pdf",
+            "doc_id": "pol-customer-sla",
+            "chunk_id": "pol-customer-sla:0001",
+            "doc_version": "yCXU4E734206lZ27lB0s_Y3yUA1XPsVL"
+          }
+        ],
+        "model": "us.amazon.nova-lite-v1:0",
+        "provider": "bedrock",
+        "usage": {
+          "input_tokens": 4116,
+          "output_tokens": 213,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost_usd": 0.00029808,
+        "timings_ms": {
+          "routing": 642.6667999476194,
+          "sql": 3274.336100090295,
+          "retrieval": 2565.6810000073165,
+          "generation": 936.9995999149978
+        },
+        "route": "hybrid",
+        "route_method": "llm",
+        "sql": "SELECT COUNT(*) AS late_deliveries, c.tier, CASE c.tier WHEN 'gold' THEN 500 WHEN 'silver' THEN 300 ELSE 100 END AS late_delivery_credit_usd FROM analytics.shipments AS s JOIN analytics.customers AS c ON s.customer_id = c.customer_id WHERE c.name = 'Hardy Outfitters' AND s.is_late AND s.delivered_at >= CAST('2026-08-01' AS DATE) AND s.delivered_at < CAST('2026-09-01' AS DATE) GROUP BY c.tier LIMIT 200",
+        "sql_error": null
+      }
+    },
+    {
+      "persona": "hr",
+      "groups": [
+        "all-staff",
+        "hr"
+      ],
+      "question": "What is the base salary range for pay band L7?",
+      "demonstrates": "restricted doc, allowed group",
+      "status": 200,
+      "client_ms": 5954,
+      "response": {
+        "request_id": "0460139a492b4c05b0d05ce52087b8f9",
+        "answer": "The base salary range for pay band L7 is $230,000 to $320,000 [1].",
+        "refused": false,
+        "refusal_reason": null,
+        "grounded": true,
+        "citations": [
+          {
+            "index": 1,
+            "title": "Compensation and Pay Bands 2026",
+            "source_uri": "s3://larkspur-smoke-raw/documents/policies/compensation-and-pay-bands-2026.pdf",
+            "doc_id": "pol-compensation-2026",
+            "chunk_id": "pol-compensation-2026:0001",
+            "doc_version": "5c9GiEU3XuV3dQjUUKwt.JQQWXjkV4yr"
+          }
+        ],
+        "model": "us.amazon.nova-lite-v1:0",
+        "provider": "bedrock",
+        "usage": {
+          "input_tokens": 1652,
+          "output_tokens": 35,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost_usd": 0.00010752,
+        "timings_ms": {
+          "routing": 668.1724999798462,
+          "retrieval": 2206.9792000111192,
+          "generation": 974.8816000064835
+        },
+        "route": "docs",
+        "route_method": "llm",
+        "sql": null,
+        "sql_error": null
+      }
+    },
+    {
+      "persona": "ops",
+      "groups": [
+        "all-staff",
+        "ops"
+      ],
+      "question": "What is the base salary range for pay band L7?",
+      "demonstrates": "same question, refused",
+      "status": 200,
+      "client_ms": 5781,
+      "response": {
+        "request_id": "c718ff89333c4d8fb60560b4f968c122",
+        "answer": "I couldn't find enough evidence in the documents available to you to answer that.",
+        "refused": true,
+        "refusal_reason": "model_insufficient_evidence",
+        "grounded": false,
+        "citations": [],
+        "model": "us.amazon.nova-lite-v1:0",
+        "provider": "bedrock",
+        "usage": {
+          "input_tokens": 1586,
+          "output_tokens": 11,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost_usd": 9.78e-05,
+        "timings_ms": {
+          "routing": 811.3076000008732,
+          "retrieval": 2263.143099960871,
+          "generation": 592.578100040555
+        },
+        "route": "docs",
+        "route_method": "llm",
+        "sql": null,
+        "sql_error": null
+      }
+    },
+    {
+      "persona": "contractor",
+      "groups": [],
+      "question": "What is the nightly hotel cap for domestic travel?",
+      "demonstrates": "no groups, fails closed",
+      "status": 200,
+      "client_ms": 2719,
+      "response": {
+        "request_id": "81e6958397ac4c88a6bc2a8b86344187",
+        "answer": "I couldn't find enough evidence in the documents available to you to answer that.",
+        "refused": true,
+        "refusal_reason": "no_accessible_sources",
+        "grounded": false,
+        "citations": [],
+        "model": null,
+        "provider": null,
+        "usage": {
+          "input_tokens": 132,
+          "output_tokens": 2,
+          "cache_read_tokens": 0,
+          "cache_write_tokens": 0
+        },
+        "cost_usd": 8.4e-06,
+        "timings_ms": {
+          "routing": 623.6921999370679,
+          "retrieval": 0.2807999262586236
+        },
+        "route": "docs",
+        "route_method": "llm",
+        "sql": null,
+        "sql_error": null
+      }
+    }
+  ],
+  "metrics": [
+    "rag_queries_total{outcome=\"answered\",route=\"docs\"} 2.0",
+    "rag_queries_total{outcome=\"answered\",route=\"sql\"} 1.0",
+    "rag_queries_total{outcome=\"answered\",route=\"hybrid\"} 1.0",
+    "rag_queries_total{outcome=\"refused\",route=\"docs\"} 2.0",
+    "rag_queries_created{outcome=\"answered\",route=\"docs\"} 1.7914412182002585e+09",
+    "rag_queries_created{outcome=\"answered\",route=\"sql\"} 1.7914412244330442e+09",
+    "rag_queries_created{outcome=\"answered\",route=\"hybrid\"} 1.791441233962926e+09",
+    "rag_queries_created{outcome=\"refused\",route=\"docs\"} 1.7914412457003741e+09",
+    "rag_query_seconds_bucket{le=\"0.05\",route=\"docs\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.1\",route=\"docs\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.25\",route=\"docs\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.5\",route=\"docs\"} 0.0",
+    "rag_query_seconds_bucket{le=\"1.0\",route=\"docs\"} 1.0",
+    "rag_query_seconds_bucket{le=\"2.0\",route=\"docs\"} 1.0",
+    "rag_query_seconds_bucket{le=\"4.0\",route=\"docs\"} 3.0",
+    "rag_query_seconds_bucket{le=\"8.0\",route=\"docs\"} 4.0",
+    "rag_query_seconds_bucket{le=\"16.0\",route=\"docs\"} 4.0",
+    "rag_query_seconds_bucket{le=\"30.0\",route=\"docs\"} 4.0",
+    "rag_query_seconds_bucket{le=\"+Inf\",route=\"docs\"} 4.0",
+    "rag_query_seconds_count{route=\"docs\"} 4.0",
+    "rag_query_seconds_sum{route=\"docs\"} 12.550947799929418",
+    "rag_query_seconds_bucket{le=\"0.05\",route=\"sql\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.1\",route=\"sql\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.25\",route=\"sql\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.5\",route=\"sql\"} 0.0",
+    "rag_query_seconds_bucket{le=\"1.0\",route=\"sql\"} 0.0",
+    "rag_query_seconds_bucket{le=\"2.0\",route=\"sql\"} 0.0",
+    "rag_query_seconds_bucket{le=\"4.0\",route=\"sql\"} 0.0",
+    "rag_query_seconds_bucket{le=\"8.0\",route=\"sql\"} 1.0",
+    "rag_query_seconds_bucket{le=\"16.0\",route=\"sql\"} 1.0",
+    "rag_query_seconds_bucket{le=\"30.0\",route=\"sql\"} 1.0",
+    "rag_query_seconds_bucket{le=\"+Inf\",route=\"sql\"} 1.0",
+    "rag_query_seconds_count{route=\"sql\"} 1.0",
+    "rag_query_seconds_sum{route=\"sql\"} 4.044365099980496",
+    "rag_query_seconds_bucket{le=\"0.05\",route=\"hybrid\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.1\",route=\"hybrid\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.25\",route=\"hybrid\"} 0.0",
+    "rag_query_seconds_bucket{le=\"0.5\",route=\"hybrid\"} 0.0",
+    "rag_query_seconds_bucket{le=\"1.0\",route=\"hybrid\"} 0.0",
+    "rag_query_seconds_bucket{le=\"2.0\",route=\"hybrid\"} 0.0",
+    "rag_query_seconds_bucket{le=\"4.0\",route=\"hybrid\"} 0.0",
+    "rag_query_seconds_bucket{le=\"8.0\",route=\"hybrid\"} 1.0",
+    "rag_query_seconds_bucket{le=\"16.0\",route=\"hybrid\"} 1.0",
+    "rag_query_seconds_bucket{le=\"30.0\",route=\"hybrid\"} 1.0",
+    "rag_query_seconds_bucket{le=\"+Inf\",route=\"hybrid\"} 1.0",
+    "rag_query_seconds_count{route=\"hybrid\"} 1.0",
+    "rag_query_seconds_sum{route=\"hybrid\"} 7.424304199987091",
+    "rag_query_seconds_created{route=\"docs\"} 1.7914412182002585e+09",
+    "rag_query_seconds_created{route=\"sql\"} 1.7914412244330442e+09",
+    "rag_query_seconds_created{route=\"hybrid\"} 1.791441233962926e+09",
+    "rag_llm_tokens_total{kind=\"input\",model=\"us.amazon.nova-lite-v1:0\"} 10110.0",
+    "rag_llm_tokens_total{kind=\"output\",model=\"us.amazon.nova-lite-v1:0\"} 363.0",
+    "rag_llm_tokens_total{kind=\"cache_read\",model=\"us.amazon.nova-lite-v1:0\"} 0.0",
+    "rag_llm_tokens_total{kind=\"cache_write\",model=\"us.amazon.nova-lite-v1:0\"} 0.0",
+    "rag_llm_tokens_created{kind=\"input\",model=\"us.amazon.nova-lite-v1:0\"} 1.7914412182002585e+09",
+    "rag_llm_tokens_created{kind=\"output\",model=\"us.amazon.nova-lite-v1:0\"} 1.7914412182002585e+09",
+    "rag_llm_tokens_created{kind=\"cache_read\",model=\"us.amazon.nova-lite-v1:0\"} 1.7914412182002585e+09",
+    "rag_llm_tokens_created{kind=\"cache_write\",model=\"us.amazon.nova-lite-v1:0\"} 1.7914412182017717e+09",
+    "rag_llm_cost_usd_total{model=\"us.amazon.nova-lite-v1:0\"} 0.00069372",
+    "rag_llm_cost_usd_created{model=\"us.amazon.nova-lite-v1:0\"} 1.7914412182017717e+09",
+    "rag_flagged_sources_total 1.0",
+    "rag_flagged_sources_created 1.791441196741279e+09",
+    "rag_rate_limited_total 0.0",
+    "rag_rate_limited_created 1.791441196741279e+09",
+    "rag_unknown_cost_total 0.0",
+    "rag_unknown_cost_created 1.791441196741279e+09"
+  ]
+}

@@ -1,0 +1,30 @@
+2026-10-08 10:48:46,693 smoke == ingest
+2026-10-08 10:48:46,694 smoke $ databricks bundle deploy -t smoke
+Building ingest_wheel...
+Uploading databricks/dist/lakehouse_rag_ingest-0.1.0-py3-none-any.whl...
+Uploading bundle files to /Workspace/Users/<me>/.bundle/lakehouse-rag/smoke/files...
+Files: 0 uploaded, 0 deleted
+Resources: 0 created, 0 changed, 0 deleted, 1 unchanged
+2026-10-08 10:49:12,877 smoke $ databricks bundle run ingest -t smoke
+Run URL: https://<workspace>/jobs/393163152582324/runs/645331499465811?o=<org>
+
+2026-10-08 10:49:16 "[smoke] lakehouse-rag ingest" RUNNING
+2026-10-08 11:03:19 "[smoke] lakehouse-rag ingest" TERMINATED CANCELED Run cancelled by user
+Error: run canceled: Run cancelled by user
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "eval\smoke.py", line 309, in <module>
+    main()
+  File "eval\smoke.py", line 303, in main
+    smoke.execute(names)
+  File "eval\smoke.py", line 208, in execute
+    self.steps()[name]()
+  File "eval\smoke.py", line 160, in ingest
+    self.run("databricks", "bundle", "run", "ingest", "-t", "smoke")
+  File "eval\smoke.py", line 128, in run
+    done = subprocess.run(argv, cwd=ROOT, env=self.env, check=check)  # noqa: S603
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Bevan\AppData\Local\mise\installs\python\3.12.13\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '('databricks', 'bundle', 'run', 'ingest', '-t', 'smoke')' returned non-zero exit status 1.

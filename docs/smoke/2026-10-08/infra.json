@@ -1,0 +1,64 @@
+{
+  "captured_at": "2026-10-08T06:27:02.630867+00:00",
+  "terraform_outputs": {
+    "db_host": "<rds-host>",
+    "db_master_secret_arn": "arn:aws:secretsmanager:us-east-1:<account>:secret:rds!db-4c46fcc9-2cec-423a-9e64-74d5274a2b42-Vybkq9",
+    "db_name": "rag",
+    "db_port": 5432,
+    "db_username": "rag_admin",
+    "ingest_dlq_url": "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest-dlq",
+    "ingest_queue_url": "https://sqs.us-east-1.amazonaws.com/<account>/larkspur-smoke-ingest",
+    "lake_bucket": "larkspur-smoke-lake",
+    "llm_secret_arn": "arn:aws:secretsmanager:us-east-1:<account>:secret:larkspur-smoke/llm-exLuNi",
+    "raw_bucket": "larkspur-smoke-raw",
+    "register_function_name": "larkspur-smoke-register",
+    "uc_lake_role_arn": "arn:aws:iam::<account>:role/larkspur-smoke-uc-lake",
+    "uc_raw_role_arn": "arn:aws:iam::<account>:role/larkspur-smoke-uc-raw"
+  },
+  "rds": [
+    {
+      "DBInstanceIdentifier": "larkspur-smoke",
+      "DBInstanceClass": "db.t3.micro",
+      "Engine": "postgres",
+      "EngineVersion": "18.3",
+      "DBInstanceStatus": "available",
+      "AllocatedStorage": 20,
+      "StorageType": "gp3",
+      "StorageEncrypted": true,
+      "PubliclyAccessible": true,
+      "MultiAZ": false,
+      "InstanceCreateTime": "2026-10-08 05:06:58.247000+00:00"
+    }
+  ],
+  "s3_objects": {
+    "larkspur-smoke-raw/": 157,
+    "larkspur-smoke-lake/manifests/": 157,
+    "larkspur-smoke-lake/delta/bronze/": 6,
+    "larkspur-smoke-lake/delta/silver/": 11,
+    "larkspur-smoke-lake/delta/gold/": 6
+  },
+  "lambda": [
+    {
+      "name": "larkspur-smoke-register",
+      "runtime": "python3.12",
+      "memory_mb": 256,
+      "invocations_today": 150.0,
+      "errors_today": 0.0
+    }
+  ],
+  "sqs": {
+    "larkspur-smoke-ingest": {
+      "ApproximateNumberOfMessages": "0",
+      "ApproximateNumberOfMessagesNotVisible": "0"
+    },
+    "larkspur-smoke-ingest-dlq": {
+      "ApproximateNumberOfMessages": "0",
+      "ApproximateNumberOfMessagesNotVisible": "0"
+    }
+  },
+  "bedrock": {
+    "region": "us-west-2",
+    "model": "us.amazon.nova-lite-v1:0",
+    "invocations_today": 297.0
+  }
+}

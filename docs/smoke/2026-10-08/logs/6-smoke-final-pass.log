@@ -1,0 +1,62 @@
+2026-10-08 11:36:58,908 smoke == ingest
+2026-10-08 11:36:58,910 smoke $ databricks bundle deploy -t smoke
+Building ingest_wheel...
+Uploading databricks/dist/lakehouse_rag_ingest-0.1.0-py3-none-any.whl...
+Uploading bundle files to /Workspace/Users/<me>/.bundle/lakehouse-rag/smoke/files...
+Files: 0 uploaded, 0 deleted
+Resources: 0 created, 0 changed, 0 deleted, 1 unchanged
+2026-10-08 11:37:25,285 smoke $ databricks bundle run ingest -t smoke
+Run URL: https://<workspace>/jobs/393163152582324/runs/756083809810507?o=<org>
+
+2026-10-08 11:37:28 "[smoke] lakehouse-rag ingest" RUNNING
+2026-10-08 11:40:20 "[smoke] lakehouse-rag ingest" TERMINATED SUCCESS
+Output:
+=======
+Task bronze:
+2026-10-08 06:08:35,857 INFO ingestion.spark.bronze bronze up to date: s3://larkspur-smoke-lake/delta/bronze/objects
+
+=======
+Task silver:
+2026-10-08 06:09:27,523 INFO ingestion.spark.silver silver up to date: s3://larkspur-smoke-lake/delta/silver/documents
+
+=======
+Task gold:
+2026-10-08 06:10:13,287 INFO ingestion.spark.gold gold up to date: s3://larkspur-smoke-lake/delta/gold/chunks
+
+2026-10-08 11:40:23,560 smoke == index
+2026-10-08 11:40:23,570 smoke $ .venv\Scripts\python.exe -m ingestion.indexer.run
+INFO __main__ index {'table_version': 1, 'mode': 'full', 'documents_indexed': 156, 'documents_removed': 0, 'chunks_written': 330, 'embeddings_computed': 324, 'embeddings_reused': 0, 'skipped': {}}
+2026-10-08 11:42:07,296 smoke == eval
+2026-10-08 11:42:10,475 smoke $ .venv\Scripts\python.exe -m eval.run_eval --mode full --report data\eval\smoke.json
+2026/10/08 11:42:22 INFO mlflow.agent.hint: Load the `instrumenting-with-mlflow-tracing` skill at .venv\Lib\site-packages\mlflow\assistant\skills\instrumenting-with-mlflow-tracing\SKILL.md before writing any tracing code; it ships with this MLflow install. Set MLFLOW_DISABLE_AGENT_HINT=1 to silence this.
+Found credentials in environment variables.
+25/121 cases
+50/121 cases
+75/121 cases
+100/121 cases
+121/121 cases
+recall_at_k                0.986
+mrr                        0.869
+router_accuracy            0.936
+answer_correctness         0.917
+sql_success                0.957
+refusal_rate_restricted    1.000
+grounded_rate              1.000
+unexpected_refusal_rate    0.028
+acl_leaks                  0.000
+errors                     0.000
+p50_latency_ms             3825.303
+p95_latency_ms             7726.091
+total_cost_usd             0.014
+report written to data\eval\smoke.json
+Retrying (Retry(total=6, connect=6, read=7, redirect=7, status=7)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it")': /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval
+Retrying (Retry(total=5, connect=5, read=7, redirect=7, status=7)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it")': /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval
+Retrying (Retry(total=4, connect=4, read=7, redirect=7, status=7)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it")': /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval
+Retrying (Retry(total=3, connect=3, read=7, redirect=7, status=7)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it")': /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval
+Retrying (Retry(total=2, connect=2, read=7, redirect=7, status=7)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it")': /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval
+Retrying (Retry(total=1, connect=1, read=7, redirect=7, status=7)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it")': /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval
+Retrying (Retry(total=0, connect=0, read=7, redirect=7, status=7)) after connection broken by 'NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it")': /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval
+MLflow logging skipped: API request to http://localhost:5000/api/2.0/mlflow/experiments/get-by-name failed with exception HTTPConnectionPool(host='localhost', port=5000): Max retries exceeded with url: /api/2.0/mlflow/experiments/get-by-name?experiment_name=lakehouse-rag-eval (Caused by NewConnectionError("HTTPConnection(host='localhost', port=5000): Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it"))
+all full thresholds met
+2026-10-08 11:56:15,488 smoke == report
+2026-10-08 11:56:15,549 smoke report written to docs\smoke\2026-10-08.md
