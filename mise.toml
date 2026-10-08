@@ -71,6 +71,10 @@ run = "terraform -chdir=infra/terraform/envs/aws destroy -input=false"
 description = "Run the pipeline on AWS + Databricks and write docs/smoke/<date>.md (MISE_ENV=aws)"
 run = "uv run python -m eval.smoke"
 
+[tasks.evidence]
+description = "Capture infra, Databricks, API and UI evidence of a smoke run; before tf-aws-destroy"
+run = "uv run python -m eval.evidence"
+
 [tasks.seed]
 description = "Generate the synthetic Larkspur Logistics dataset and load sources"
 run = "uv run python -m data_gen.generate"
