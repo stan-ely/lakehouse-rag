@@ -6,7 +6,7 @@ bronze must record each version's own bytes rather than the latest bytes twice.
 
 Credentials: locally and in the Lambda the default chain applies. On Databricks, a Unity
 Catalog external location gives Spark access to the lake but gives boto3 nothing, so the job
-names a UC *service credential*; the driver resolves it once per batch and the executors get
+names a UC *service credential*; the job's driver resolves it once per run and the executors get
 the resulting short-lived keys (see `service_credentials`).
 """
 
@@ -45,8 +45,9 @@ class Credentials:
 def service_credentials(name: str, region: str) -> Credentials:
     """Resolves a Unity Catalog service credential on the Databricks driver.
 
-    `dbutils` exists only on Databricks, hence the local import. The keys are temporary (about
-    an hour), which is why bronze resolves them per micro-batch rather than once per job.
+    `dbutils` exists only on Databricks, hence the local import. Call it from the job's own
+    process: on serverless, foreachBatch runs elsewhere and `dbutils` cannot authenticate there.
+    The keys are temporary (about an hour).
     """
     from databricks.sdk.runtime import dbutils  # type: ignore[import-not-found,unused-ignore]
 

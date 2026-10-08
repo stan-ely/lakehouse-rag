@@ -13,7 +13,7 @@ from delta.tables import DeltaTable
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
-from ingestion.spark.objects import fetch_contents, service_credentials
+from ingestion.spark.objects import Credentials, fetch_contents, service_credentials
 from ingestion.spark.schemas import BRONZE_OBJECTS_DDL, FETCHED_DDL, MANIFEST_DDL, column_names
 from ingestion.spark.settings import Settings
 
@@ -32,14 +32,8 @@ def ensure_table(spark: SparkSession, path: str, ddl: str) -> None:
     )
 
 
-def merge_batch(batch: DataFrame, table_path: str, settings: Settings) -> None:
+def merge_batch(batch: DataFrame, table_path: str, credentials: Credentials | None) -> None:
     spark = batch.sparkSession
-    # Resolved here, on the driver, per batch: service-credential keys expire within the hour.
-    credentials = (
-        service_credentials(settings.service_credential, settings.region)
-        if settings.service_credential
-        else None
-    )
     fetched = (
         # The file source adds partition columns (dt=...) from the manifest path; mapInPandas
         # matches output columns by name, so pass exactly the contract columns through.
@@ -60,6 +54,15 @@ def merge_batch(batch: DataFrame, table_path: str, settings: Settings) -> None:
 def run(spark: SparkSession, settings: Settings) -> None:
     table_path = settings.table_path("bronze", "objects")
     ensure_table(spark, table_path, BRONZE_OBJECTS_DDL)
+    # Resolved once, here in the job's own process. On serverless, foreachBatch runs in a
+    # separate server-side Python process where `dbutils` cannot authenticate, so it cannot
+    # resolve the credential itself. The keys last about an hour; an availableNow run over
+    # the backlog takes minutes.
+    credentials = (
+        service_credentials(settings.service_credential, settings.region)
+        if settings.service_credential
+        else None
+    )
 
     manifests = (
         spark.readStream.schema(MANIFEST_DDL)
@@ -69,7 +72,7 @@ def run(spark: SparkSession, settings: Settings) -> None:
     query = (
         manifests.writeStream.trigger(availableNow=True)
         .option("checkpointLocation", settings.checkpoint_path("bronze_objects"))
-        .foreachBatch(lambda batch, _batch_id: merge_batch(batch, table_path, settings))
+        .foreachBatch(lambda batch, _batch_id: merge_batch(batch, table_path, credentials))
         .start()
     )
     query.awaitTermination()
