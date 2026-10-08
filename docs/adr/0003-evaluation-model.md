@@ -42,7 +42,7 @@ The three Nova models the account can call were each scored on the whole 121-cas
 | p50 latency | 1.74 s | **1.62 s** | 2.78 s |
 
 Nova Lite is the only one that passes every threshold in `eval/thresholds.yaml`, and it does so
-at a seventieth of Pro's cost. Two results are worth keeping in mind:
+at a fourteenth of Pro's cost. Two results are worth keeping in mind:
 
 - **Pro routes worse than Lite** (0.807 vs 0.927). It sends plain policy questions to `hybrid`,
   which costs a pointless SQL attempt. That is a prompt problem, not a capability one.
