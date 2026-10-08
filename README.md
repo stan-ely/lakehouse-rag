@@ -129,19 +129,19 @@ mise run eval-full   # whole pipeline against real Bedrock; about a cent per run
 
 Runs are logged to MLflow (`lakehouse-rag-eval` experiment on :5000) with the full per-case report as an artifact; `--no-mlflow` skips it, as CI does.
 
-**Retrieval profile** (the index on its own): recall@k 0.93, MRR 0.88, **0 ACL leaks**, ~26 ms per query. Every miss is a hybrid question naming a customer: tickets and emails about that customer outrank the policy page the question also needs. Reranking is a week 6 candidate.
+**Retrieval profile** (the index on its own): recall@k 1.00, MRR 0.94, **0 ACL leaks**. Hybrid questions used to miss their policy page, because tickets and emails about the named customer outranked it. They now search the document clause of the question on its own ([ADR 0005](docs/adr/0005-hybrid-document-subquery.md)); before that change, recall@k was 0.93.
 
-**Full profile** on Amazon Nova Lite ([ADR 0003](docs/adr/0003-evaluation-model.md) compares three models):
+**Full profile** on Amazon Nova Lite. [ADR 0003](docs/adr/0003-evaluation-model.md) compares three models, and [ADR 0006](docs/adr/0006-sql-prompt-over-model.md) covers the SQL prompt fix:
 
-| metric | result |
-|---|---|
-| router accuracy | 0.927 |
-| SQL execution success | 0.936 |
-| answer correctness | 0.872 |
-| recall@k (end to end) | 0.903 |
-| refusal on restricted questions | 1.000 |
-| **ACL leaks** | **0** |
-| cost / p50 latency | $0.013 per run / 1.6 s |
+| metric | local | AWS smoke run |
+|---|---|---|
+| router accuracy | 0.927 | 0.936 |
+| SQL execution success | 0.894 | 0.957 |
+| answer correctness | 0.899 | 0.917 |
+| recall@k (end to end) | 0.986 | 0.986 |
+| refusal on restricted questions | 1.000 | 1.000 |
+| **ACL leaks** | **0** | **0** |
+| cost / p50 latency | $0.014 per run / 1.7 s | $0.014 per run / 3.8 s |
 
 No model tried leaked restricted content or answered a question the caller had no right to, which is the point: access control lives in Postgres and the retrieval filter, not in the model's judgement.
 
