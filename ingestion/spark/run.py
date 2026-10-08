@@ -47,7 +47,10 @@ def main(argv: list[str] | None = None) -> None:
         for step in args.steps:
             STEPS[step](spark, settings)
     finally:
-        spark.stop()
+        # On serverless the platform owns the session. Stopping it after `dbutils` has resolved
+        # a service credential never returns, and the task hangs after its work is done.
+        if not is_remote():
+            spark.stop()
 
 
 if __name__ == "__main__":
