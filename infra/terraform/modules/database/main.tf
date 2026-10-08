@@ -14,13 +14,13 @@ variable "allowed_cidr" {
 
 variable "instance_class" {
   type    = string
-  default = "db.t4g.micro"
+  default = "db.t3.micro"
 }
 
 variable "engine_version" {
   description = "Major version only; RDS picks the current minor, which must offer pgvector"
   type        = string
-  default     = "17"
+  default     = "18"
 }
 
 variable "db_name" {
