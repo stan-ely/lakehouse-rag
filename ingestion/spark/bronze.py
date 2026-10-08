@@ -28,6 +28,9 @@ def ensure_table(spark: SparkSession, path: str, ddl: str) -> None:
         .addColumns(schema)
         # Silver reads bronze incrementally through the change feed.
         .property("delta.enableChangeDataFeed", "true")
+        # The indexer reads gold with delta-rs, which cannot read deletion vectors. Databricks
+        # serverless turns them on for new tables by default; OSS Delta leaves them off.
+        .property("delta.enableDeletionVectors", "false")
         .execute()
     )
 
